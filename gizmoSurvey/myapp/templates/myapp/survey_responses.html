@@ -1,0 +1,188 @@
+{% extends 'myapp/base.html' %}
+
+{% block title %}{{ survey.title }} - Responses{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2 class="mb-1">
+                        <i class="bi bi-eye"></i> Survey Responses: {{ survey.title }}
+                    </h2>
+                    <p class="text-muted mb-0">
+                        View and manage individual student responses
+                    </p>
+                </div>
+                <div class="d-flex gap-2">
+                    <a href="{% url 'survey_analytics' survey.id %}" class="btn btn-outline-info">
+                        <i class="bi bi-graph-up"></i> Analytics
+                    </a>
+                    <a href="{% url 'edit_survey' survey.id %}" class="btn btn-outline-primary">
+                        <i class="bi bi-pencil"></i> Edit Survey
+                    </a>
+                    <a href="{% url 'teacher_dashboard' %}" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left"></i> Back to Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search and Filter -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <form method="get" class="row g-3">
+                        <div class="col-md-8">
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="bi bi-search"></i>
+                                </span>
+                                <input type="text" class="form-control" name="search" 
+                                       placeholder="Search by student name or username..." 
+                                       value="{{ search_query }}">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="bi bi-search"></i> Search
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Responses Table -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="bi bi-list-check"></i> Student Responses
+                    </h5>
+                    <div class="d-flex gap-2">
+                        <span class="badge bg-success fs-6">{{ current_version_count }} current</span>
+                        {% for version, count in outdated_version_counts.items %}
+                            <span class="badge bg-warning fs-6">{{ count }} v{{ version }}</span>
+                        {% endfor %}
+                        <span class="badge bg-primary fs-6">{{ survey.responses.count }} total</span>
+                        <span class="badge bg-info fs-6">v{{ survey.version }} current</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if responses_by_version %}
+                        {% for version in sorted_versions %}
+                            {% for version_key, responses in responses_by_version.items %}
+                                {% if version_key == version %}
+                                <div class="mb-4">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <h6 class="mb-0">
+                                            <i class="bi bi-{% if version == survey.version %}check-circle-fill text-success{% else %}clock-history text-warning{% endif %}"></i>
+                                            Version {{ version }} Responses
+                                            {% if version == survey.version %}
+                                                <span class="badge bg-success ms-2">Current</span>
+                                            {% else %}
+                                                <span class="badge bg-warning ms-2">Outdated</span>
+                                            {% endif %}
+                                        </h6>
+                                        <span class="badge bg-secondary">{{ responses|length }} response{{ responses|length|pluralize }}</span>
+                                    </div>
+                                    
+                                    <div class="table-responsive">
+                                        <table class="table table-hover table-sm">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th>Student</th>
+                                                    <th>Section</th>
+                                                    <th>Submitted</th>
+                                                    <th>Status</th>
+                                                    <th>Questions Answered</th>
+                                                    <th>Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for response in responses %}
+                                                    <tr class="{% if version != survey.version %}table-warning{% endif %}">
+                                                        <td>
+                                                            <div>
+                                                                <h6 class="mb-0">{{ response.student.get_full_name|default:response.student.username }}</h6>
+                                                                <small class="text-muted">@{{ response.student.username }}</small>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <span class="badge bg-info">
+                                                                {{ response.student.userprofile.section.name|default:"No Section" }}
+                                                            </span>
+                                                        </td>
+                                                        <td>
+                                                            <span class="text-muted">
+                                                                {{ response.submitted_at|date:"M d, Y" }}<br>
+                                                                <small>{{ response.submitted_at|time:"g:i A" }}</small>
+                                                            </span>
+                                                        </td>
+                                                        <td>
+                                                            {% if response.is_complete %}
+                                                                <span class="badge bg-success">
+                                                                    <i class="bi bi-check-circle"></i> Complete
+                                                                </span>
+                                                            {% else %}
+                                                                <span class="badge bg-warning">
+                                                                    <i class="bi bi-exclamation-circle"></i> Incomplete
+                                                                </span>
+                                                            {% endif %}
+                                                        </td>
+                                                        <td>
+                                                            <span class="badge bg-primary">
+                                                                {{ response.answers.count }} / {{ response.original_question_count }}
+                                                                {% if version != survey.version %}
+                                                                    <small class="text-warning">(original)</small>
+                                                                {% endif %}
+                                                            </span>
+                                                        </td>
+                                                        <td>
+                                                            <a href="{% url 'view_response' response.id %}" class="btn btn-outline-primary btn-sm">
+                                                                <i class="bi bi-eye"></i> View Details
+                                                            </a>
+                                                        </td>
+                                                    </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                                
+                                {% if not forloop.last %}
+                                    <hr class="my-4">
+                                {% endif %}
+                                {% endif %}
+                            {% endfor %}
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="bi bi-clipboard-x display-1 text-muted"></i>
+                            <h5 class="text-muted mt-3">No responses yet</h5>
+                            <p class="text-muted">
+                                {% if search_query %}
+                                    No responses found matching "{{ search_query }}".
+                                {% else %}
+                                    Students haven't started responding to this survey yet.
+                                {% endif %}
+                            </p>
+                            {% if search_query %}
+                                <a href="{% url 'survey_responses' survey.id %}" class="btn btn-outline-primary">
+                                    <i class="bi bi-arrow-left"></i> Clear Search
+                                </a>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

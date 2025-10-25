@@ -1,0 +1,1067 @@
+{% extends 'myapp/base.html' %}
+
+{% block title %}{{ survey.title }} - Edit Survey{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2 class="mb-1">
+                        <i class="bi bi-pencil"></i> Edit Survey: {{ survey.title }}
+                    </h2>
+                    <p class="text-muted mb-0">
+                        Manage survey settings and questions
+                    </p>
+                </div>
+                <div class="d-flex gap-2">
+                    <a href="{% url 'survey_settings_management' survey.id %}" class="btn btn-outline-secondary">
+                        <i class="bi bi-gear"></i> Settings
+                    </a>
+                    <a href="{% url 'assignment_management' survey.id %}" class="btn btn-outline-info">
+                        <i class="bi bi-people"></i> Assignments
+                    </a>
+                    <a href="{% url 'survey_responses' survey.id %}" class="btn btn-outline-success">
+                        <i class="bi bi-eye"></i> Responses
+                    </a>
+                    <a href="{% url 'survey_analytics' survey.id %}" class="btn btn-outline-warning">
+                        <i class="bi bi-graph-up"></i> Analytics
+                    </a>
+                    <a href="{% url 'teacher_dashboard' %}" class="btn btn-outline-primary">
+                        <i class="bi bi-arrow-left"></i> Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Survey Settings -->
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-gear"></i> Survey Settings
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.title.id_for_label }}" class="form-label">Title</label>
+                            {{ form.title }}
+                            {% if form.title.errors %}
+                                <div class="text-danger small">{{ form.title.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.description.id_for_label }}" class="form-label">Description</label>
+                            {{ form.description }}
+                            {% if form.description.errors %}
+                                <div class="text-danger small">{{ form.description.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.due_date.id_for_label }}" class="form-label">Due Date</label>
+                            {{ form.due_date }}
+                            {% if form.due_date.errors %}
+                                <div class="text-danger small">{{ form.due_date.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="form-check">
+                                {{ form.is_active }}
+                                <label class="form-check-label" for="{{ form.is_active.id_for_label }}">
+                                    Survey is active
+                                </label>
+                            </div>
+                            {% if form.is_active.errors %}
+                                <div class="text-danger small">{{ form.is_active.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Assigned Sections</label>
+                            <div class="max-height-200 overflow-auto">
+                                {% for section in form.sections %}
+                                    <div class="form-check">
+                                        {{ section.tag }}
+                                        <label class="form-check-label" for="{{ section.id_for_label }}">
+                                            {{ section.choice_label }}
+                                        </label>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                            {% if form.sections.errors %}
+                                <div class="text-danger small">{{ form.sections.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-save"></i> Update Settings
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Survey Statistics -->
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-graph-up"></i> Statistics
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <h4 class="text-primary">{{ questions.count }}</h4>
+                            <small class="text-muted">Questions</small>
+                        </div>
+                        <div class="col-6">
+                            <h4 class="text-success">{{ survey.responses.count }}</h4>
+                            <small class="text-muted">Responses</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Questions Management -->
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="bi bi-question-circle"></i> Questions
+                    </h5>
+                    <div class="btn-group" role="group">
+                        <a href="{% url 'question_bulk_operations' survey.id %}" class="btn btn-outline-secondary btn-sm">
+                            <i class="bi bi-layers"></i> Bulk Operations
+                        </a>
+                        <button type="button" class="btn btn-primary btn-sm" id="addQuestionBtn">
+                            <i class="bi bi-plus"></i> Add Question
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Inline Question Form (Hidden by default) -->
+                    <div id="questionFormContainer" style="display: none;" class="mb-4">
+                        <div class="card border-primary">
+                            <div class="card-header bg-primary text-white">
+                                <h6 class="mb-0">
+                                    <i class="bi bi-plus-circle"></i> Add New Question
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <form id="inlineQuestionForm">
+                                    <div class="mb-3">
+                                        <label for="questionText" class="form-label">Question Text</label>
+                                        <textarea class="form-control" id="questionText" rows="2" required></textarea>
+                                    </div>
+                                    
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label for="questionType" class="form-label">Question Type</label>
+                                            <select class="form-select" id="questionType" required>
+                                                <option value="">Select type...</option>
+                                                <option value="multiple_choice">Multiple Choice</option>
+                                                <option value="likert_scale">Likert Scale</option>
+                                                <option value="short_answer">Short Answer</option>
+                                                <option value="long_answer">Long Answer</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label for="questionOrder" class="form-label">Order</label>
+                                            <input type="number" class="form-control" id="questionOrder" min="1" value="1">
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="isRequired" checked>
+                                            <label class="form-check-label" for="isRequired">
+                                                This question is required
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Multiple Choice Options -->
+                                    <div id="multipleChoiceOptions" style="display: none;">
+                                        <div class="mb-3">
+                                            <label class="form-label">Answer Options</label>
+                                            <div id="optionsContainer">
+                                                <div class="input-group mb-2">
+                                                    <input type="text" class="form-control option-input" placeholder="Enter option text">
+                                                    <button type="button" class="btn btn-outline-danger remove-option" style="display: none;">
+                                                        <i class="bi bi-trash"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <button type="button" class="btn btn-outline-primary btn-sm" id="addOption">
+                                                <i class="bi bi-plus"></i> Add Option
+                                            </button>
+                                            <div class="form-text">Add at least 2 options for multiple choice questions</div>
+                                            <textarea class="form-control" id="questionOptions" rows="3" style="display: none;"></textarea>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Likert Scale Settings -->
+                                    <div id="likertSettings" style="display: none;">
+                                        <div class="mb-3">
+                                            <label class="form-label">Scale Template</label>
+                                            <select class="form-select" id="likertTemplate">
+                                                <option value="">Choose a template or create custom</option>
+                                                <option value="agreement">Agreement Scale (Strongly Disagree to Strongly Agree)</option>
+                                                <option value="satisfaction">Satisfaction Scale (Very Dissatisfied to Very Satisfied)</option>
+                                                <option value="frequency">Frequency Scale (Never to Always)</option>
+                                                <option value="quality">Quality Scale (Poor to Excellent)</option>
+                                                <option value="likelihood">Likelihood Scale (Very Unlikely to Very Likely)</option>
+                                                <option value="custom">Custom Scale</option>
+                                            </select>
+                                        </div>
+                                        
+                                        <div class="row">
+                                            <div class="col-md-6 mb-3">
+                                                <label for="likertMin" class="form-label">Minimum Value</label>
+                                                <input type="number" class="form-control" id="likertMin" value="1" min="1">
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label for="likertMax" class="form-label">Maximum Value</label>
+                                                <input type="number" class="form-control" id="likertMax" value="5" min="2">
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label class="form-label">Scale Labels</label>
+                                            <div id="labelsContainer">
+                                                <!-- Labels will be dynamically generated here -->
+                                            </div>
+                                            <div class="form-text">Labels will be automatically generated based on your template and scale range</div>
+                                            <textarea class="form-control" id="likertLabels" rows="2" style="display: none;"></textarea>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="d-flex gap-2">
+                                        <button type="submit" class="btn btn-success">
+                                            <i class="bi bi-plus"></i> Add to List
+                                        </button>
+                                        <button type="button" class="btn btn-secondary" id="cancelQuestionBtn">
+                                            <i class="bi bi-x"></i> Cancel
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Temporary Questions List -->
+                    <div id="temporaryQuestionsList" style="display: none;" class="mb-4">
+                        <div class="card border-warning">
+                            <div class="card-header bg-warning text-dark">
+                                <h6 class="mb-0">
+                                    <i class="bi bi-clock"></i> Questions to be Added
+                                    <span class="badge bg-dark ms-2" id="tempQuestionsCount">0</span>
+                                </h6>
+                            </div>
+                            <div class="card-body" id="tempQuestionsContainer">
+                                <!-- Temporary questions will be added here -->
+                            </div>
+                            <div class="card-footer">
+                                <div class="d-flex gap-2">
+                                    <button type="button" class="btn btn-success" id="saveAllQuestionsBtn">
+                                        <i class="bi bi-save"></i> Save All Questions
+                                    </button>
+                                    <button type="button" class="btn btn-outline-danger" id="clearTempQuestionsBtn">
+                                        <i class="bi bi-trash"></i> Clear All
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Existing Questions -->
+                    {% if questions %}
+                        <div class="questions-list" id="questionsList">
+                            {% for question in questions %}
+                                <div class="question-item mb-3 p-3 border rounded draggable-question" 
+                                     data-question-id="{{ question.id }}" 
+                                     data-order="{{ question.order }}"
+                                     draggable="true">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div class="flex-grow-1">
+                                            <div class="d-flex align-items-center mb-2">
+                                                <div class="drag-handle me-2" style="cursor: move;">
+                                                    <i class="bi bi-grip-vertical text-muted"></i>
+                                                </div>
+                                                <span class="badge bg-secondary me-2 order-badge">{{ question.order }}</span>
+                                                <h6 class="mb-0">{{ question.question_text }}</h6>
+                                                {% if question.is_required %}
+                                                    <span class="badge bg-danger ms-2">Required</span>
+                                                {% endif %}
+                                            </div>
+                                            
+                                            <div class="small text-muted mb-2">
+                                                <span class="badge bg-info">{{ question.get_question_type_display }}</span>
+                                                {% if question.question_type == 'multiple_choice' and question.options %}
+                                                    <span class="ms-2">{{ question.options|length }} options</span>
+                                                {% elif question.question_type == 'likert_scale' %}
+                                                    <span class="ms-2">{{ question.likert_min }}-{{ question.likert_max }} scale</span>
+                                                {% endif %}
+                                            </div>
+                                            
+                                            {% if question.question_type == 'multiple_choice' and question.options %}
+                                                <div class="small text-muted">
+                                                    <strong>Options:</strong>
+                                                    {% for option in question.options %}
+                                                        <span class="badge bg-light text-dark me-1">{{ option }}</span>
+                                                    {% endfor %}
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                        
+                                        <div class="btn-group" role="group">
+                                            <a href="{% url 'edit_question' question.id %}" class="btn btn-outline-primary btn-sm">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                            <a href="{% url 'delete_question' question.id %}" 
+                                               class="btn btn-outline-danger btn-sm"
+                                               onclick="return confirm('Are you sure you want to deactivate this question? It will be hidden but can be restored later.')">
+                                                <i class="bi bi-trash"></i>
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="bi bi-question-circle display-1 text-muted"></i>
+                            <h5 class="text-muted mt-3">No questions yet</h5>
+                            <p class="text-muted">Add your first question to get started.</p>
+                            <button type="button" class="btn btn-primary" id="addFirstQuestionBtn">
+                                <i class="bi bi-plus"></i> Add First Question
+                            </button>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Inactive Questions Section -->
+    {% if inactive_questions %}
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">
+                        <i class="bi bi-archive"></i> Inactive Questions
+                        <small class="text-muted">(Previously deleted questions - can be restored)</small>
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="questions-list">
+                        {% for question in inactive_questions %}
+                            <div class="question-item mb-3 p-3 border rounded bg-light">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div class="flex-grow-1">
+                                        <div class="d-flex align-items-center mb-2">
+                                            <span class="badge bg-secondary me-2">{{ question.order }}</span>
+                                            <span class="badge bg-outline-secondary">{{ question.get_question_type_display }}</span>
+                                            {% if question.is_required %}
+                                                <span class="badge bg-danger ms-2">Required</span>
+                                            {% endif %}
+                                        </div>
+                                        <h6 class="mb-2 text-muted">{{ question.question_text }}</h6>
+                                        
+                                        {% if question.question_type == 'multiple_choice' %}
+                                            <div class="options-list">
+                                                <small class="text-muted">Options:</small>
+                                                <ul class="list-unstyled ms-3">
+                                                    {% for option in question.options %}
+                                                        <li><small class="text-muted">• {{ option }}</small></li>
+                                                    {% endfor %}
+                                                </ul>
+                                            </div>
+                                        {% elif question.question_type == 'likert_scale' %}
+                                            <div class="likert-info">
+                                                <small class="text-muted">Scale: {{ question.likert_min }} to {{ question.likert_max }}</small>
+                                                {% if question.likert_labels %}
+                                                    <br><small class="text-muted">Labels: {{ question.likert_labels|join:", " }}</small>
+                                                {% endif %}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <div class="btn-group" role="group">
+                                        <a href="{% url 'restore_question' question.id %}" 
+                                           class="btn btn-outline-success btn-sm"
+                                           onclick="return confirm('Are you sure you want to restore this question?')">
+                                            <i class="bi bi-arrow-clockwise"></i> Restore
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+.max-height-200 {
+    max-height: 200px;
+}
+.question-item {
+    transition: all 0.2s ease-in-out;
+    cursor: move;
+}
+.question-item:hover {
+    background-color: #f8f9fa;
+}
+.question-item.dragging {
+    opacity: 0.5;
+    transform: rotate(5deg);
+}
+.question-item.drag-over {
+    border-color: #007bff;
+    background-color: #e3f2fd;
+}
+.drag-handle {
+    cursor: move;
+}
+.drag-handle:hover {
+    color: #007bff !important;
+}
+.order-badge {
+    transition: all 0.2s ease-in-out;
+}
+.drop-indicator {
+    height: 3px;
+    background-color: #007bff;
+    margin: 5px 0;
+    border-radius: 2px;
+    opacity: 0;
+    transition: opacity 0.2s ease-in-out;
+}
+.drop-indicator.active {
+    opacity: 1;
+}
+</style>
+
+<script>
+// Question management functionality
+document.addEventListener('DOMContentLoaded', function() {
+    // Global variables
+    let temporaryQuestions = [];
+    let questionCounter = 0;
+    
+    // DOM elements
+    const addQuestionBtn = document.getElementById('addQuestionBtn');
+    const addFirstQuestionBtn = document.getElementById('addFirstQuestionBtn');
+    const questionFormContainer = document.getElementById('questionFormContainer');
+    const inlineQuestionForm = document.getElementById('inlineQuestionForm');
+    const cancelQuestionBtn = document.getElementById('cancelQuestionBtn');
+    const temporaryQuestionsList = document.getElementById('temporaryQuestionsList');
+    const tempQuestionsContainer = document.getElementById('tempQuestionsContainer');
+    const tempQuestionsCount = document.getElementById('tempQuestionsCount');
+    const saveAllQuestionsBtn = document.getElementById('saveAllQuestionsBtn');
+    const clearTempQuestionsBtn = document.getElementById('clearTempQuestionsBtn');
+    
+    // Form elements
+    const questionText = document.getElementById('questionText');
+    const questionType = document.getElementById('questionType');
+    const questionOrder = document.getElementById('questionOrder');
+    const isRequired = document.getElementById('isRequired');
+    const multipleChoiceOptions = document.getElementById('multipleChoiceOptions');
+    const likertSettings = document.getElementById('likertSettings');
+    const questionOptions = document.getElementById('questionOptions');
+    const likertMin = document.getElementById('likertMin');
+    const likertMax = document.getElementById('likertMax');
+    const likertLabels = document.getElementById('likertLabels');
+    
+    // New elements for simplified interface
+    const optionsContainer = document.getElementById('optionsContainer');
+    const addOptionBtn = document.getElementById('addOption');
+    const likertTemplate = document.getElementById('likertTemplate');
+    const labelsContainer = document.getElementById('labelsContainer');
+    
+    // Likert scale templates
+    const likertTemplates = {
+        agreement: ['Strongly Disagree', 'Disagree', 'Neutral', 'Agree', 'Strongly Agree'],
+        satisfaction: ['Very Dissatisfied', 'Dissatisfied', 'Neutral', 'Satisfied', 'Very Satisfied'],
+        frequency: ['Never', 'Rarely', 'Sometimes', 'Often', 'Always'],
+        quality: ['Poor', 'Fair', 'Good', 'Very Good', 'Excellent'],
+        likelihood: ['Very Unlikely', 'Unlikely', 'Neutral', 'Likely', 'Very Likely']
+    };
+    
+    let optionCounter = 0;
+    
+    // Event listeners
+    if (addQuestionBtn) {
+        addQuestionBtn.addEventListener('click', showQuestionForm);
+    }
+    if (addFirstQuestionBtn) {
+        addFirstQuestionBtn.addEventListener('click', showQuestionForm);
+    }
+    if (cancelQuestionBtn) {
+        cancelQuestionBtn.addEventListener('click', hideQuestionForm);
+    }
+    if (inlineQuestionForm) {
+        inlineQuestionForm.addEventListener('submit', addQuestionToList);
+    }
+    if (questionType) {
+        questionType.addEventListener('change', toggleQuestionTypeFields);
+    }
+    if (addOptionBtn) {
+        addOptionBtn.addEventListener('click', addOptionInput);
+    }
+    if (likertTemplate) {
+        likertTemplate.addEventListener('change', generateLikertLabels);
+    }
+    if (likertMin) {
+        likertMin.addEventListener('change', generateLikertLabels);
+    }
+    if (likertMax) {
+        likertMax.addEventListener('change', generateLikertLabels);
+    }
+    if (saveAllQuestionsBtn) {
+        saveAllQuestionsBtn.addEventListener('click', saveAllQuestions);
+    }
+    if (clearTempQuestionsBtn) {
+        clearTempQuestionsBtn.addEventListener('click', clearTemporaryQuestions);
+    }
+    
+    // Initialize drag and drop for existing questions
+    initializeDragAndDrop();
+    
+    function showQuestionForm() {
+        questionFormContainer.style.display = 'block';
+        questionFormContainer.scrollIntoView({ behavior: 'smooth' });
+        questionText.focus();
+    }
+    
+    function hideQuestionForm() {
+        questionFormContainer.style.display = 'none';
+        resetQuestionForm();
+    }
+    
+    function resetQuestionForm() {
+        inlineQuestionForm.reset();
+        questionOrder.value = getNextOrderNumber();
+        multipleChoiceOptions.style.display = 'none';
+        likertSettings.style.display = 'none';
+    }
+    
+    function getNextOrderNumber() {
+        const existingQuestions = document.querySelectorAll('.draggable-question');
+        const tempQuestions = temporaryQuestions.length;
+        return existingQuestions.length + tempQuestions + 1;
+    }
+    
+    function toggleQuestionTypeFields() {
+        const type = questionType.value;
+        
+        // Hide all conditional fields
+        multipleChoiceOptions.style.display = 'none';
+        likertSettings.style.display = 'none';
+        
+        // Show relevant fields based on question type
+        if (type === 'multiple_choice') {
+            multipleChoiceOptions.style.display = 'block';
+            initializeMultipleChoice();
+        } else if (type === 'likert_scale') {
+            likertSettings.style.display = 'block';
+            initializeLikertScale();
+        }
+    }
+    
+    function initializeMultipleChoice() {
+        // Clear existing options
+        optionsContainer.innerHTML = '';
+        optionCounter = 0;
+        
+        // Add initial options
+        addOptionInput();
+        addOptionInput();
+    }
+    
+    function addOptionInput(value = '') {
+        optionCounter++;
+        const optionDiv = document.createElement('div');
+        optionDiv.className = 'input-group mb-2';
+        optionDiv.innerHTML = `
+            <input type="text" class="form-control option-input" placeholder="Enter option text" value="${value}">
+            <button type="button" class="btn btn-outline-danger remove-option">
+                <i class="bi bi-trash"></i>
+            </button>
+        `;
+        
+        optionsContainer.appendChild(optionDiv);
+        
+        // Add event listeners
+        const input = optionDiv.querySelector('.option-input');
+        const removeBtn = optionDiv.querySelector('.remove-option');
+        
+        input.addEventListener('input', updateOptionsField);
+        removeBtn.addEventListener('click', function() {
+            optionDiv.remove();
+            updateOptionsField();
+            updateRemoveButtons();
+        });
+        
+        updateRemoveButtons();
+        updateOptionsField();
+    }
+    
+    function updateRemoveButtons() {
+        const optionInputs = document.querySelectorAll('.option-input');
+        const removeButtons = document.querySelectorAll('.remove-option');
+        
+        removeButtons.forEach((btn, index) => {
+            btn.style.display = optionInputs.length > 2 ? 'block' : 'none';
+        });
+    }
+    
+    function updateOptionsField() {
+        const options = Array.from(document.querySelectorAll('.option-input'))
+            .map(input => input.value.trim())
+            .filter(value => value.length > 0);
+        
+        questionOptions.value = options.join('\n');
+    }
+    
+    function initializeLikertScale() {
+        // Set default values
+        likertMin.value = 1;
+        likertMax.value = 5;
+        
+        // Generate default labels
+        generateLikertLabels();
+    }
+    
+    function generateLikertLabels() {
+        const template = likertTemplate.value;
+        const min = parseInt(likertMin.value) || 1;
+        const max = parseInt(likertMax.value) || 5;
+        
+        let labels = [];
+        
+        if (template && template !== 'custom' && likertTemplates[template]) {
+            const templateLabels = likertTemplates[template];
+            const range = max - min + 1;
+            
+            if (range === templateLabels.length) {
+                labels = templateLabels;
+            } else if (range < templateLabels.length) {
+                // Take middle labels if range is smaller
+                const start = Math.floor((templateLabels.length - range) / 2);
+                labels = templateLabels.slice(start, start + range);
+            } else {
+                // Interpolate labels if range is larger
+                labels = interpolateLabels(templateLabels, range);
+            }
+        } else {
+            // Generate numeric labels
+            labels = Array.from({length: range}, (_, i) => (min + i).toString());
+        }
+        
+        // Update labels container
+        labelsContainer.innerHTML = '';
+        labels.forEach((label, index) => {
+            const labelDiv = document.createElement('div');
+            labelDiv.className = 'input-group mb-2';
+            labelDiv.innerHTML = `
+                <span class="input-group-text">${min + index}</span>
+                <input type="text" class="form-control label-input" value="${label}" data-index="${index}">
+            `;
+            
+            const input = labelDiv.querySelector('.label-input');
+            input.addEventListener('input', updateLikertLabelsField);
+            
+            labelsContainer.appendChild(labelDiv);
+        });
+        
+        updateLikertLabelsField();
+    }
+    
+    function interpolateLabels(templateLabels, targetLength) {
+        const result = [];
+        const step = (templateLabels.length - 1) / (targetLength - 1);
+        
+        for (let i = 0; i < targetLength; i++) {
+            const index = i * step;
+            const lower = Math.floor(index);
+            const upper = Math.ceil(index);
+            
+            if (lower === upper) {
+                result.push(templateLabels[lower]);
+            } else {
+                // Simple interpolation - could be enhanced
+                result.push(templateLabels[lower]);
+            }
+        }
+        
+        return result;
+    }
+    
+    function updateLikertLabelsField() {
+        const labels = Array.from(document.querySelectorAll('.label-input'))
+            .map(input => input.value.trim())
+            .filter(value => value.length > 0);
+        
+        likertLabels.value = labels.join('\n');
+    }
+    
+    function addQuestionToList(e) {
+        e.preventDefault();
+        
+        // Validate form
+        if (!questionText.value.trim()) {
+            showNotification('Please enter question text', 'error');
+            return;
+        }
+        if (!questionType.value) {
+            showNotification('Please select question type', 'error');
+            return;
+        }
+        
+        // Create question object
+        const question = {
+            id: 'temp_' + (++questionCounter),
+            question_text: questionText.value.trim(),
+            question_type: questionType.value,
+            is_required: isRequired.checked,
+            order: parseInt(questionOrder.value),
+            options: [],
+            likert_min: 1,
+            likert_max: 5,
+            likert_labels: []
+        };
+        
+        // Add type-specific data
+        if (questionType.value === 'multiple_choice' && questionOptions.value.trim()) {
+            question.options = questionOptions.value.split('\n')
+                .map(opt => opt.trim())
+                .filter(opt => opt.length > 0);
+        }
+        
+        if (questionType.value === 'likert_scale') {
+            question.likert_min = parseInt(likertMin.value) || 1;
+            question.likert_max = parseInt(likertMax.value) || 5;
+            if (likertLabels.value.trim()) {
+                question.likert_labels = likertLabels.value.split('\n')
+                    .map(label => label.trim())
+                    .filter(label => label.length > 0);
+            }
+        }
+        
+        // Add to temporary list
+        temporaryQuestions.push(question);
+        
+        // Update UI
+        updateTemporaryQuestionsList();
+        hideQuestionForm();
+        showNotification('Question added to list', 'success');
+    }
+    
+    function updateTemporaryQuestionsList() {
+        if (temporaryQuestions.length === 0) {
+            temporaryQuestionsList.style.display = 'none';
+            return;
+        }
+        
+        temporaryQuestionsList.style.display = 'block';
+        tempQuestionsCount.textContent = temporaryQuestions.length;
+        
+        // Sort by order
+        const sortedQuestions = [...temporaryQuestions].sort((a, b) => a.order - b.order);
+        
+        tempQuestionsContainer.innerHTML = sortedQuestions.map(question => {
+            let optionsHtml = '';
+            if (question.question_type === 'multiple_choice' && question.options.length > 0) {
+                optionsHtml = `
+                    <div class="small text-muted">
+                        <strong>Options:</strong>
+                        ${question.options.map(opt => `<span class="badge bg-light text-dark me-1">${opt}</span>`).join('')}
+                    </div>
+                `;
+            } else if (question.question_type === 'likert_scale') {
+                optionsHtml = `
+                    <div class="small text-muted">
+                        <strong>Scale:</strong> ${question.likert_min}-${question.likert_max}
+                    </div>
+                `;
+            }
+            
+            return `
+                <div class="question-item mb-2 p-2 border rounded bg-light">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div class="flex-grow-1">
+                            <div class="d-flex align-items-center mb-1">
+                                <span class="badge bg-warning me-2">${question.order}</span>
+                                <h6 class="mb-0">${question.question_text}</h6>
+                                ${question.is_required ? '<span class="badge bg-danger ms-2">Required</span>' : ''}
+                            </div>
+                            <div class="small text-muted mb-1">
+                                <span class="badge bg-info">${getQuestionTypeDisplay(question.question_type)}</span>
+                            </div>
+                            ${optionsHtml}
+                        </div>
+                        <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeTemporaryQuestion('${question.id}')">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+    
+    function getQuestionTypeDisplay(type) {
+        const types = {
+            'multiple_choice': 'Multiple Choice',
+            'likert_scale': 'Likert Scale',
+            'short_answer': 'Short Answer',
+            'long_answer': 'Long Answer'
+        };
+        return types[type] || type;
+    }
+    
+    function removeTemporaryQuestion(questionId) {
+        temporaryQuestions = temporaryQuestions.filter(q => q.id !== questionId);
+        updateTemporaryQuestionsList();
+        showNotification('Question removed from list', 'success');
+    }
+    
+    function clearTemporaryQuestions() {
+        if (temporaryQuestions.length === 0) return;
+        
+        if (confirm('Are you sure you want to clear all temporary questions?')) {
+            temporaryQuestions = [];
+            updateTemporaryQuestionsList();
+            showNotification('All temporary questions cleared', 'success');
+        }
+    }
+    
+    function saveAllQuestions() {
+        if (temporaryQuestions.length === 0) {
+            showNotification('No questions to save', 'error');
+            return;
+        }
+        
+        // Show loading state
+        saveAllQuestionsBtn.disabled = true;
+        saveAllQuestionsBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Saving...';
+        
+        // Send AJAX request to save all questions
+        fetch('{% url "add_question" survey.id %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: JSON.stringify({
+                questions: temporaryQuestions,
+                batch_save: true
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showNotification(`Successfully saved ${temporaryQuestions.length} questions!`, 'success');
+                temporaryQuestions = [];
+                updateTemporaryQuestionsList();
+                // Reload page to show new questions
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500);
+            } else {
+                showNotification('Failed to save questions: ' + (data.error || 'Unknown error'), 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('Error saving questions', 'error');
+        })
+        .finally(() => {
+            saveAllQuestionsBtn.disabled = false;
+            saveAllQuestionsBtn.innerHTML = '<i class="bi bi-save"></i> Save All Questions';
+        });
+    }
+    
+    function initializeDragAndDrop() {
+        const questionsList = document.getElementById('questionsList');
+        
+        if (questionsList) {
+            let draggedElement = null;
+            let draggedIndex = -1;
+            
+            // Add event listeners to all draggable questions
+            const questions = questionsList.querySelectorAll('.draggable-question');
+            questions.forEach((question, index) => {
+                question.addEventListener('dragstart', handleDragStart);
+                question.addEventListener('dragend', handleDragEnd);
+                question.addEventListener('dragover', handleDragOver);
+                question.addEventListener('drop', handleDrop);
+                question.addEventListener('dragenter', handleDragEnter);
+                question.addEventListener('dragleave', handleDragLeave);
+            });
+            
+            function handleDragStart(e) {
+                draggedElement = this;
+                draggedIndex = Array.from(questionsList.children).indexOf(this);
+                this.classList.add('dragging');
+                
+                // Set drag data
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/html', this.outerHTML);
+            }
+            
+            function handleDragEnd(e) {
+                this.classList.remove('dragging');
+                
+                // Remove all drag-over classes
+                questions.forEach(q => q.classList.remove('drag-over'));
+                
+                // Remove drop indicators
+                const indicators = document.querySelectorAll('.drop-indicator');
+                indicators.forEach(indicator => indicator.remove());
+                
+                draggedElement = null;
+                draggedIndex = -1;
+            }
+            
+            function handleDragOver(e) {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+                
+                const afterElement = getDragAfterElement(questionsList, e.clientY);
+                const dragging = document.querySelector('.dragging');
+                
+                if (afterElement == null) {
+                    questionsList.appendChild(dragging);
+                } else {
+                    questionsList.insertBefore(dragging, afterElement);
+                }
+            }
+            
+            function handleDrop(e) {
+                e.preventDefault();
+                
+                if (draggedElement) {
+                    const newIndex = Array.from(questionsList.children).indexOf(draggedElement);
+                    
+                    if (newIndex !== draggedIndex) {
+                        // Update order badges
+                        updateOrderBadges();
+                        
+                        // Send AJAX request to update order in backend
+                        updateQuestionOrder();
+                    }
+                }
+            }
+            
+            function handleDragEnter(e) {
+                e.preventDefault();
+                this.classList.add('drag-over');
+            }
+            
+            function handleDragLeave(e) {
+                this.classList.remove('drag-over');
+            }
+            
+            function getDragAfterElement(container, y) {
+                const draggableElements = [...container.querySelectorAll('.draggable-question:not(.dragging)')];
+                
+                return draggableElements.reduce((closest, child) => {
+                    const box = child.getBoundingClientRect();
+                    const offset = y - box.top - box.height / 2;
+                    
+                    if (offset < 0 && offset > closest.offset) {
+                        return { offset: offset, element: child };
+                    } else {
+                        return closest;
+                    }
+                }, { offset: Number.NEGATIVE_INFINITY }).element;
+            }
+            
+            function updateOrderBadges() {
+                const questions = questionsList.querySelectorAll('.draggable-question');
+                questions.forEach((question, index) => {
+                    const badge = question.querySelector('.order-badge');
+                    if (badge) {
+                        badge.textContent = index + 1;
+                    }
+                    question.setAttribute('data-order', index + 1);
+                });
+            }
+            
+            function updateQuestionOrder() {
+                const questions = questionsList.querySelectorAll('.draggable-question');
+                const orderData = Array.from(questions).map((question, index) => ({
+                    id: question.getAttribute('data-question-id'),
+                    order: index + 1
+                }));
+                
+                // Send AJAX request to update order
+                fetch('{% url "reorder_questions" survey.id %}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    },
+                    body: JSON.stringify({
+                        questions: orderData
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Show success message
+                        showNotification('Question order updated successfully!', 'success');
+                    } else {
+                        showNotification('Failed to update question order', 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showNotification('Error updating question order', 'error');
+                });
+            }
+        }
+    }
+    
+    function showNotification(message, type) {
+        // Create notification element
+        const notification = document.createElement('div');
+        notification.className = `alert alert-${type === 'success' ? 'success' : 'danger'} alert-dismissible fade show position-fixed`;
+        notification.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+        notification.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        
+        document.body.appendChild(notification);
+        
+        // Auto remove after 3 seconds
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.remove();
+            }
+        }, 3000);
+    }
+    
+    // Make removeTemporaryQuestion globally accessible
+    window.removeTemporaryQuestion = removeTemporaryQuestion;
+});
+</script>
+{% endblock %}

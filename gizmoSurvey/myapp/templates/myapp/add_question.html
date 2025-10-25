@@ -1,0 +1,500 @@
+{% extends 'myapp/base.html' %}
+
+{% block title %}Add Question - {{ survey.title }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2 class="mb-1">
+                        <i class="bi bi-plus-circle"></i> Add Question
+                    </h2>
+                    <p class="text-muted mb-0">
+                        Add a new question to "{{ survey.title }}"
+                    </p>
+                </div>
+                <a href="{% url 'edit_survey' survey.id %}" class="btn btn-outline-primary" id="backButton">
+                    <i class="bi bi-arrow-left"></i> Back to Survey
+                </a>
+            </div>
+
+            <form method="post" id="questionForm">
+                {% csrf_token %}
+                
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="bi bi-question-circle"></i> Question Details
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="{{ form.question_text.id_for_label }}" class="form-label">Question Text</label>
+                            {{ form.question_text }}
+                            {% if form.question_text.errors %}
+                                <div class="text-danger small">{{ form.question_text.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.question_type.id_for_label }}" class="form-label">Question Type</label>
+                                {{ form.question_type }}
+                                {% if form.question_type.errors %}
+                                    <div class="text-danger small">{{ form.question_type.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.order.id_for_label }}" class="form-label">Order</label>
+                                {{ form.order }}
+                                {% if form.order.errors %}
+                                    <div class="text-danger small">{{ form.order.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="form-check">
+                                {{ form.is_required }}
+                                <label class="form-check-label" for="{{ form.is_required.id_for_label }}">
+                                    This question is required
+                                </label>
+                            </div>
+                            {% if form.is_required.errors %}
+                                <div class="text-danger small">{{ form.is_required.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Multiple Choice Options -->
+                        <div id="multipleChoiceOptions" style="display: none;">
+                            <div class="mb-3">
+                                <label class="form-label">Answer Options</label>
+                                <div id="optionsContainer">
+                                    <div class="input-group mb-2">
+                                        <input type="text" class="form-control option-input" placeholder="Enter option text">
+                                        <button type="button" class="btn btn-outline-danger remove-option" style="display: none;">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <button type="button" class="btn btn-outline-primary btn-sm" id="addOption">
+                                    <i class="bi bi-plus"></i> Add Option
+                                </button>
+                                <div class="form-text">Add at least 2 options for multiple choice questions</div>
+                                {{ form.options }}
+                                {% if form.options.errors %}
+                                    <div class="text-danger small">{{ form.options.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Likert Scale Settings -->
+                        <div id="likertSettings" style="display: none;">
+                            <div class="mb-3">
+                                <label class="form-label">Scale Template</label>
+                                <select class="form-select" id="likertTemplate">
+                                    <option value="">Choose a template or create custom</option>
+                                    <option value="agreement">Agreement Scale (Strongly Disagree to Strongly Agree)</option>
+                                    <option value="satisfaction">Satisfaction Scale (Very Dissatisfied to Very Satisfied)</option>
+                                    <option value="frequency">Frequency Scale (Never to Always)</option>
+                                    <option value="quality">Quality Scale (Poor to Excellent)</option>
+                                    <option value="likelihood">Likelihood Scale (Very Unlikely to Very Likely)</option>
+                                    <option value="custom">Custom Scale</option>
+                                </select>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="{{ form.likert_min.id_for_label }}" class="form-label">Minimum Value</label>
+                                    {{ form.likert_min }}
+                                    {% if form.likert_min.errors %}
+                                        <div class="text-danger small">{{ form.likert_min.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="{{ form.likert_max.id_for_label }}" class="form-label">Maximum Value</label>
+                                    {{ form.likert_max }}
+                                    {% if form.likert_max.errors %}
+                                        <div class="text-danger small">{{ form.likert_max.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Scale Labels</label>
+                                <div id="labelsContainer">
+                                    <!-- Labels will be dynamically generated here -->
+                                </div>
+                                <div class="form-text">Labels will be automatically generated based on your template and scale range</div>
+                                {{ form.likert_labels }}
+                                {% if form.likert_labels.errors %}
+                                    <div class="text-danger small">{{ form.likert_labels.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Preview Section -->
+                <div class="card mt-4" id="previewCard" style="display: none;">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="bi bi-eye"></i> Question Preview
+                        </h5>
+                    </div>
+                    <div class="card-body" id="previewContent">
+                        <!-- Preview content will be generated here -->
+                    </div>
+                </div>
+
+                <div class="text-center mt-4">
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="bi bi-save"></i> Add Question
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const questionTypeField = document.getElementById('{{ form.question_type.id_for_label }}');
+    const multipleChoiceDiv = document.getElementById('multipleChoiceOptions');
+    const likertDiv = document.getElementById('likertSettings');
+    const previewCard = document.getElementById('previewCard');
+    const previewContent = document.getElementById('previewContent');
+    const optionsContainer = document.getElementById('optionsContainer');
+    const addOptionBtn = document.getElementById('addOption');
+    const likertTemplate = document.getElementById('likertTemplate');
+    const labelsContainer = document.getElementById('labelsContainer');
+    const optionsField = document.getElementById('{{ form.options.id_for_label }}');
+    const likertLabelsField = document.getElementById('{{ form.likert_labels.id_for_label }}');
+    
+    // Likert scale templates
+    const likertTemplates = {
+        agreement: ['Strongly Disagree', 'Disagree', 'Neutral', 'Agree', 'Strongly Agree'],
+        satisfaction: ['Very Dissatisfied', 'Dissatisfied', 'Neutral', 'Satisfied', 'Very Satisfied'],
+        frequency: ['Never', 'Rarely', 'Sometimes', 'Often', 'Always'],
+        quality: ['Poor', 'Fair', 'Good', 'Very Good', 'Excellent'],
+        likelihood: ['Very Unlikely', 'Unlikely', 'Neutral', 'Likely', 'Very Likely']
+    };
+    
+    let optionCounter = 0;
+    
+    function toggleFields() {
+        const questionType = questionTypeField.value;
+        
+        // Hide all conditional fields
+        multipleChoiceDiv.style.display = 'none';
+        likertDiv.style.display = 'none';
+        
+        // Show relevant fields based on question type
+        if (questionType === 'multiple_choice') {
+            multipleChoiceDiv.style.display = 'block';
+            initializeMultipleChoice();
+        } else if (questionType === 'likert_scale') {
+            likertDiv.style.display = 'block';
+            initializeLikertScale();
+        }
+        
+        updatePreview();
+    }
+    
+    function initializeMultipleChoice() {
+        // Clear existing options
+        optionsContainer.innerHTML = '';
+        optionCounter = 0;
+        
+        // Add initial option
+        addOptionInput();
+        addOptionInput();
+    }
+    
+    function addOptionInput(value = '') {
+        optionCounter++;
+        const optionDiv = document.createElement('div');
+        optionDiv.className = 'input-group mb-2';
+        optionDiv.innerHTML = `
+            <input type="text" class="form-control option-input" placeholder="Enter option text" value="${value}">
+            <button type="button" class="btn btn-outline-danger remove-option">
+                <i class="bi bi-trash"></i>
+            </button>
+        `;
+        
+        optionsContainer.appendChild(optionDiv);
+        
+        // Add event listeners
+        const input = optionDiv.querySelector('.option-input');
+        const removeBtn = optionDiv.querySelector('.remove-option');
+        
+        input.addEventListener('input', updateOptionsField);
+        removeBtn.addEventListener('click', function() {
+            optionDiv.remove();
+            updateOptionsField();
+            updatePreview();
+            updateRemoveButtons();
+        });
+        
+        updateRemoveButtons();
+        updateOptionsField();
+    }
+    
+    function updateRemoveButtons() {
+        const optionInputs = document.querySelectorAll('.option-input');
+        const removeButtons = document.querySelectorAll('.remove-option');
+        
+        removeButtons.forEach((btn, index) => {
+            btn.style.display = optionInputs.length > 2 ? 'block' : 'none';
+        });
+    }
+    
+    function updateOptionsField() {
+        const options = Array.from(document.querySelectorAll('.option-input'))
+            .map(input => input.value.trim())
+            .filter(value => value.length > 0);
+        
+        optionsField.value = options.join('\n');
+        updatePreview();
+    }
+    
+    function initializeLikertScale() {
+        // Set default values
+        document.getElementById('{{ form.likert_min.id_for_label }}').value = 1;
+        document.getElementById('{{ form.likert_max.id_for_label }}').value = 5;
+        
+        // Generate default labels
+        generateLikertLabels();
+    }
+    
+    function generateLikertLabels() {
+        const template = likertTemplate.value;
+        const min = parseInt(document.getElementById('{{ form.likert_min.id_for_label }}').value) || 1;
+        const max = parseInt(document.getElementById('{{ form.likert_max.id_for_label }}').value) || 5;
+        
+        let labels = [];
+        
+        if (template && template !== 'custom' && likertTemplates[template]) {
+            const templateLabels = likertTemplates[template];
+            const range = max - min + 1;
+            
+            if (range === templateLabels.length) {
+                labels = templateLabels;
+            } else if (range < templateLabels.length) {
+                // Take middle labels if range is smaller
+                const start = Math.floor((templateLabels.length - range) / 2);
+                labels = templateLabels.slice(start, start + range);
+            } else {
+                // Interpolate labels if range is larger
+                labels = interpolateLabels(templateLabels, range);
+            }
+        } else {
+            // Generate numeric labels
+            labels = Array.from({length: range}, (_, i) => (min + i).toString());
+        }
+        
+        // Update labels container
+        labelsContainer.innerHTML = '';
+        labels.forEach((label, index) => {
+            const labelDiv = document.createElement('div');
+            labelDiv.className = 'input-group mb-2';
+            labelDiv.innerHTML = `
+                <span class="input-group-text">${min + index}</span>
+                <input type="text" class="form-control label-input" value="${label}" data-index="${index}">
+            `;
+            
+            const input = labelDiv.querySelector('.label-input');
+            input.addEventListener('input', updateLikertLabelsField);
+            
+            labelsContainer.appendChild(labelDiv);
+        });
+        
+        updateLikertLabelsField();
+    }
+    
+    function interpolateLabels(templateLabels, targetLength) {
+        const result = [];
+        const step = (templateLabels.length - 1) / (targetLength - 1);
+        
+        for (let i = 0; i < targetLength; i++) {
+            const index = i * step;
+            const lower = Math.floor(index);
+            const upper = Math.ceil(index);
+            
+            if (lower === upper) {
+                result.push(templateLabels[lower]);
+            } else {
+                // Simple interpolation - could be enhanced
+                result.push(templateLabels[lower]);
+            }
+        }
+        
+        return result;
+    }
+    
+    function updateLikertLabelsField() {
+        const labels = Array.from(document.querySelectorAll('.label-input'))
+            .map(input => input.value.trim())
+            .filter(value => value.length > 0);
+        
+        likertLabelsField.value = labels.join('\n');
+        updatePreview();
+    }
+    
+    function updatePreview() {
+        const questionText = document.getElementById('{{ form.question_text.id_for_label }}').value;
+        const questionType = questionTypeField.value;
+        
+        if (questionText.trim()) {
+            previewCard.style.display = 'block';
+            
+            let previewHtml = `
+                <div class="mb-3">
+                    <label class="form-label fw-bold">${questionText}</label>
+                    <span class="badge bg-danger ms-2">Required</span>
+                </div>
+            `;
+            
+            if (questionType === 'multiple_choice') {
+                const options = Array.from(document.querySelectorAll('.option-input'))
+                    .map(input => input.value.trim())
+                    .filter(value => value.length > 0);
+                
+                if (options.length > 0) {
+                    previewHtml += '<div class="form-check-group">';
+                    options.forEach((option, index) => {
+                        previewHtml += `
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="radio" disabled>
+                                <label class="form-check-label">${option}</label>
+                            </div>
+                        `;
+                    });
+                    previewHtml += '</div>';
+                }
+            } else if (questionType === 'likert_scale') {
+                const min = parseInt(document.getElementById('{{ form.likert_min.id_for_label }}').value) || 1;
+                const max = parseInt(document.getElementById('{{ form.likert_max.id_for_label }}').value) || 5;
+                const labels = Array.from(document.querySelectorAll('.label-input'))
+                    .map(input => input.value.trim())
+                    .filter(value => value.length > 0);
+                
+                previewHtml += '<div class="form-check-group">';
+                for (let i = min; i <= max; i++) {
+                    let label = i.toString();
+                    if (labels[i - min]) {
+                        label = labels[i - min];
+                    }
+                    previewHtml += `
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="radio" disabled>
+                            <label class="form-check-label">${label}</label>
+                        </div>
+                    `;
+                }
+                previewHtml += '</div>';
+            } else if (questionType === 'short_answer') {
+                previewHtml += '<input type="text" class="form-control" disabled placeholder="Your answer...">';
+            } else if (questionType === 'long_answer') {
+                previewHtml += '<textarea class="form-control" rows="4" disabled placeholder="Your answer..."></textarea>';
+            }
+            
+            previewContent.innerHTML = previewHtml;
+        } else {
+            previewCard.style.display = 'none';
+        }
+    }
+    
+    function validateForm() {
+        const questionText = document.getElementById('{{ form.question_text.id_for_label }}').value.trim();
+        const questionType = questionTypeField.value;
+        
+        if (!questionText) {
+            showNotification('Please enter question text', 'error');
+            return false;
+        }
+        
+        if (questionType === 'multiple_choice') {
+            const options = Array.from(document.querySelectorAll('.option-input'))
+                .map(input => input.value.trim())
+                .filter(value => value.length > 0);
+            
+            if (options.length < 2) {
+                showNotification('Please provide at least 2 options for multiple choice questions', 'error');
+                return false;
+            }
+            
+            // Check for duplicate options
+            const uniqueOptions = new Set(options);
+            if (uniqueOptions.size !== options.length) {
+                showNotification('Please ensure all options are unique', 'error');
+                return false;
+            }
+        } else if (questionType === 'likert_scale') {
+            const min = parseInt(document.getElementById('{{ form.likert_min.id_for_label }}').value) || 1;
+            const max = parseInt(document.getElementById('{{ form.likert_max.id_for_label }}').value) || 5;
+            
+            if (min >= max) {
+                showNotification('Maximum value must be greater than minimum value', 'error');
+                return false;
+            }
+            
+            if (max - min < 1) {
+                showNotification('Scale range must be at least 2 points', 'error');
+                return false;
+            }
+        }
+        
+        return true;
+    }
+    
+    function showNotification(message, type) {
+        // Create notification element
+        const notification = document.createElement('div');
+        notification.className = `alert alert-${type === 'error' ? 'danger' : 'success'} alert-dismissible fade show position-fixed`;
+        notification.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+        notification.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        
+        document.body.appendChild(notification);
+        
+        // Auto remove after 5 seconds
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.remove();
+            }
+        }, 5000);
+    }
+    
+    // Event listeners
+    questionTypeField.addEventListener('change', toggleFields);
+    addOptionBtn.addEventListener('click', addOptionInput);
+    likertTemplate.addEventListener('change', generateLikertLabels);
+    
+    // Add event listeners to min/max fields
+    document.getElementById('{{ form.likert_min.id_for_label }}').addEventListener('change', generateLikertLabels);
+    document.getElementById('{{ form.likert_max.id_for_label }}').addEventListener('change', generateLikertLabels);
+    
+    // Add event listeners to all form fields for preview updates
+    const formFields = document.querySelectorAll('#questionForm input, #questionForm textarea, #questionForm select');
+    formFields.forEach(field => {
+        field.addEventListener('input', updatePreview);
+        field.addEventListener('change', updatePreview);
+    });
+    
+    // Add form validation on submit
+    document.getElementById('questionForm').addEventListener('submit', function(e) {
+        if (!validateForm()) {
+            e.preventDefault();
+        }
+    });
+    
+    // Initial setup
+    toggleFields();
+});
+</script>
+{% endblock %}

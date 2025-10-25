@@ -1,0 +1,311 @@
+{% extends 'myapp/base.html' %}
+{% load static %}
+<!-- Template updated with Status column -->
+
+{% block title %}Manage Sections - Survey Management System{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div class="d-flex align-items-center">
+                    <img src="{% static 'myapp/images/logo_survey.png' %}" alt="Gizmo Survey Logo" class="me-3" style="height: 50px; width: auto;">
+                    <div>
+                        <h2 class="mb-1">
+                            <i class="bi bi-people"></i> Manage Sections
+                        </h2>
+                        <p class="text-muted mb-0">
+                            Create and manage class sections for survey assignments
+                        </p>
+                    </div>
+                </div>
+                <div class="d-flex gap-2">
+                    <a href="{% url 'section_bulk_operations' %}" class="btn btn-outline-secondary">
+                        <i class="bi bi-layers"></i> Bulk Operations
+                    </a>
+                    <a href="{% url 'teacher_dashboard' %}" class="btn btn-outline-primary">
+                        <i class="bi bi-arrow-left"></i> Back to Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Create New Section -->
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-plus-circle"></i> Create New Section
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.name.id_for_label }}" class="form-label">Section Name</label>
+                            {{ form.name }}
+                            {% if form.name.errors %}
+                                <div class="text-danger small">{{ form.name.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.code.id_for_label }}" class="form-label">Section Code</label>
+                            {{ form.code }}
+                            <div class="form-text">Unique identifier for this section (e.g., CS101-A)</div>
+                            {% if form.code.errors %}
+                                <div class="text-danger small">{{ form.code.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.description.id_for_label }}" class="form-label">Description</label>
+                            {{ form.description }}
+                            <div class="form-text">Optional description for this section</div>
+                            {% if form.description.errors %}
+                                <div class="text-danger small">{{ form.description.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-save"></i> Create Section
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Existing Sections -->
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-list-check"></i> STATUS COLUMN TEST - All Sections
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if sections %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Section Name</th>
+                                        <th>Code</th>
+                                        <th>Description</th>
+                                        <th>Status</th>
+                                        <th>Created</th>
+                                        <th>Surveys</th>
+                                        <th>Students</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for section in sections %}
+                                        <tr {% if not section.is_active %}class="table-secondary"{% endif %}>
+                                            <td>
+                                                <h6 class="mb-0">{{ section.name }}</h6>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-primary">{{ section.code }}</span>
+                                            </td>
+                                            <td>
+                                                {% if section.description %}
+                                                    <small class="text-muted">{{ section.description|truncatewords:10 }}</small>
+                                                {% else %}
+                                                    <small class="text-muted">No description</small>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if section.is_active %}
+                                                    <span class="badge bg-success">
+                                                        <i class="bi bi-check-circle"></i> Active
+                                                    </span>
+                                                {% else %}
+                                                    <span class="badge bg-secondary">
+                                                        <i class="bi bi-x-circle"></i> Inactive
+                                                    </span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <small class="text-muted">{{ section.created_at|date:"M d, Y" }}</small>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-info">{{ section.surveys.count }}</span>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-success">{{ section.userprofile_set.count }}</span>
+                                            </td>
+                                            <td>
+                                                <div class="btn-group" role="group">
+                                                    <button class="btn btn-outline-primary btn-sm" onclick="editSection({{ section.id }})">
+                                                        <i class="bi bi-pencil"></i>
+                                                    </button>
+                                                    {% if section.is_active %}
+                                                        <button class="btn btn-outline-warning btn-sm" onclick="deactivateSection({{ section.id }})">
+                                                            <i class="bi bi-pause-circle"></i>
+                                                        </button>
+                                                    {% else %}
+                                                        <button class="btn btn-outline-success btn-sm" onclick="restoreSection({{ section.id }})">
+                                                            <i class="bi bi-eye"></i>
+                                                        </button>
+                                                    {% endif %}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="bi bi-people display-1 text-muted"></i>
+                            <h5 class="text-muted mt-3">No sections found</h5>
+                            <p class="text-muted">Create your first section to start organizing students and assigning surveys.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Inactive Sections -->
+    {% if inactive_sections %}
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-pause-circle"></i> Inactive Sections
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Section Name</th>
+                                    <th>Code</th>
+                                    <th>Description</th>
+                                    <th>Created</th>
+                                    <th>Surveys</th>
+                                    <th>Students</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for section in inactive_sections %}
+                                    <tr class="table-secondary">
+                                        <td>
+                                            <h6 class="mb-0 text-muted">{{ section.name }}</h6>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-secondary">{{ section.code }}</span>
+                                        </td>
+                                        <td>
+                                            {% if section.description %}
+                                                <small class="text-muted">{{ section.description|truncatewords:10 }}</small>
+                                            {% else %}
+                                                <small class="text-muted">No description</small>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <small class="text-muted">{{ section.created_at|date:"M d, Y" }}</small>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-secondary">{{ section.surveys.count }}</span>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-secondary">{{ section.userprofile_set.count }}</span>
+                                        </td>
+                                        <td>
+                                            <div class="btn-group" role="group">
+                                                <button class="btn btn-outline-success btn-sm" onclick="restoreSection({{ section.id }})">
+                                                    <i class="bi bi-eye"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Edit Section Modal -->
+<div class="modal fade" id="editSectionModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-pencil"></i> Edit Section
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editSectionForm">
+                    <div class="mb-3">
+                        <label class="form-label">Section Name</label>
+                        <input type="text" class="form-control" id="editSectionName" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Section Code</label>
+                        <input type="text" class="form-control" id="editSectionCode" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <textarea class="form-control" id="editSectionDescription" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveSection()">Save Changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentSectionId = null;
+
+function editSection(sectionId) {
+    currentSectionId = sectionId;
+    // This would typically load section data via AJAX
+    // For now, we'll show a placeholder
+    const modal = new bootstrap.Modal(document.getElementById('editSectionModal'));
+    modal.show();
+}
+
+function saveSection() {
+    if (currentSectionId) {
+        // This would typically save via AJAX
+        alert('Section update functionality would be implemented here');
+        const modal = bootstrap.Modal.getInstance(document.getElementById('editSectionModal'));
+        modal.hide();
+    }
+}
+
+function deactivateSection(sectionId) {
+    if (confirm('Are you sure you want to deactivate this section? It will be hidden but can be restored later. All students in this section will also be deactivated.')) {
+        window.location.href = `/teacher/section/${sectionId}/delete/`;
+    }
+}
+
+function restoreSection(sectionId) {
+    if (confirm('Are you sure you want to restore this section? It will become active again. All students in this section will also be reactivated.')) {
+        window.location.href = `/teacher/section/${sectionId}/restore/`;
+    }
+}
+</script>
+{% endblock %}

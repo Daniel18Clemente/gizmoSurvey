@@ -1,0 +1,1557 @@
+{% extends 'myapp/base.html' %}
+
+{% block title %}Teacher Dashboard - Gizmo Survey{% endblock %}
+{% block page_title %}Teacher Dashboard{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <p class="text-muted mb-0">
+                    Welcome back, {{ user.get_full_name|default:user.username }}!
+                </p>
+            </div>
+            <div class="d-flex gap-2">
+                <a href="{% url 'create_survey' %}" class="btn btn-primary">
+                    <i class="fas fa-plus-circle"></i> Create Survey
+                </a>
+                <a href="{% url 'manage_sections' %}" class="btn btn-outline-primary">
+                    <i class="fas fa-users"></i> Manage Sections
+                </a>
+                <a href="{% url 'manage_students' %}" class="btn btn-outline-info">
+                    <i class="fas fa-user-graduate"></i> Manage Students
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title">Total Surveys</h6>
+                            <h3 class="mb-0">{{ survey_stats|length }}</h3>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="bi bi-clipboard-data fs-1 opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title">Active Surveys</h6>
+                            <h3 class="mb-0">{{ active_surveys_count }}</h3>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="bi bi-play-circle fs-1 opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title">Total Responses</h6>
+                            <h3 class="mb-0">{{ total_responses_count }}</h3>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="bi bi-graph-up fs-1 opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Analytics Dashboard -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-graph-up-arrow"></i> Analytics Dashboard
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <!-- Overall Empty State for No Surveys -->
+                    {% if not surveys_for_filter %}
+                    <div class="empty-state show">
+                        <div class="empty-state-icon">
+                            <i class="bi bi-clipboard-data"></i>
+                        </div>
+                        <div class="empty-state-title">No Surveys Yet</div>
+                        <div class="empty-state-description">
+                            Create your first survey to start collecting data and see analytics here.
+                        </div>
+                        <div class="empty-state-action">
+                            <a href="{% url 'create_survey' %}" class="btn btn-primary">
+                                <i class="bi bi-plus-circle"></i> Create Your First Survey
+                            </a>
+                        </div>
+                    </div>
+                    {% else %}
+                    <!-- Filter Controls -->
+                    <div class="filter-controls">
+                        <div class="row">
+                            <div class="col-md-3 mb-3">
+                                <label for="surveyFilter" class="form-label fw-semibold">
+                                    <i class="bi bi-clipboard-data me-1"></i>Survey
+                                </label>
+                                <select id="surveyFilter" class="form-select">
+                                    <option value="all">All Surveys</option>
+                                    {% for survey in surveys_for_filter %}
+                                        <option value="{{ survey.id }}">{{ survey.title }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label for="sectionFilter" class="form-label fw-semibold">
+                                    <i class="bi bi-people me-1"></i>Section
+                                </label>
+                                <select id="sectionFilter" class="form-select">
+                                    <option value="all">All Sections</option>
+                                    <!-- Will be populated via AJAX -->
+                                </select>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label for="dateFromFilter" class="form-label fw-semibold">
+                                    <i class="bi bi-calendar me-1"></i>Date From
+                                </label>
+                                <input type="date" id="dateFromFilter" class="form-control">
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label for="dateToFilter" class="form-label fw-semibold">
+                                    <i class="bi bi-calendar-check me-1"></i>Date To
+                                </label>
+                                <input type="date" id="dateToFilter" class="form-control">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-12 text-end">
+                                <button id="resetFilters" class="btn btn-outline-secondary me-2">
+                                    <i class="bi bi-arrow-clockwise"></i> Reset
+                                </button>
+                                <button id="applyFilters" class="btn btn-primary">
+                                    <i class="bi bi-funnel"></i> Apply Filters
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Charts Grid -->
+                    <div class="row">
+                        <!-- Pie Chart - Survey Response Percentages -->
+                        <div class="col-lg-6 mb-4">
+                            <div class="card h-100 chart-card">
+                                <div class="card-header bg-gradient">
+                                    <h6 class="mb-0">
+                                        <i class="bi bi-pie-chart text-primary"></i> Response Percentage by Survey
+                                    </h6>
+                                </div>
+                                <div class="card-body d-flex align-items-center justify-content-center position-relative" id="pieChartContainer">
+                                    <div class="chart-content loaded">
+                                        <canvas id="pieChart" class="chart-canvas" width="250" height="200"></canvas>
+                                    </div>
+                                    <div class="chart-placeholder" id="pieChartPlaceholder">
+                                        <div class="chart-placeholder-icon">
+                                            <i class="bi bi-pie-chart"></i>
+                                        </div>
+                                        <div class="chart-placeholder-text">No survey response data available</div>
+                                    </div>
+                                    <div class="no-data-overlay" id="pieChartNoData">
+                                        <div class="empty-state compact-empty-state">
+                                            <div class="empty-state-icon">
+                                                <i class="bi bi-clipboard-x"></i>
+                                            </div>
+                                            <div class="empty-state-title">No Survey Data</div>
+                                            <div class="empty-state-description">Create surveys and collect responses to see analytics</div>
+                                        </div>
+                                    </div>
+                                    <div class="loading-overlay">
+                                        <div class="loading-spinner"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Bar Chart - Responses per Section -->
+                        <div class="col-lg-6 mb-4">
+                            <div class="card h-100 chart-card">
+                                <div class="card-header bg-gradient">
+                                    <h6 class="mb-0">
+                                        <i class="bi bi-bar-chart text-success"></i> Responses by Section
+                                    </h6>
+                                </div>
+                                <div class="card-body position-relative d-flex align-items-center justify-content-center" id="barChartContainer">
+                                    <div class="chart-content loaded">
+                                        <canvas id="barChart" class="chart-canvas" width="300" height="200"></canvas>
+                                    </div>
+                                    <div class="chart-placeholder" id="barChartPlaceholder">
+                                        <div class="chart-placeholder-icon">
+                                            <i class="bi bi-bar-chart"></i>
+                                        </div>
+                                        <div class="chart-placeholder-text">No section response data available</div>
+                                    </div>
+                                    <div class="no-data-overlay" id="barChartNoData">
+                                        <div class="empty-state compact-empty-state">
+                                            <div class="empty-state-icon">
+                                                <i class="bi bi-people-x"></i>
+                                            </div>
+                                            <div class="empty-state-title">No Section Data</div>
+                                            <div class="empty-state-description">Assign surveys to sections to see response distribution</div>
+                                        </div>
+                                    </div>
+                                    <div class="loading-overlay">
+                                        <div class="loading-spinner"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Line Chart - Daily Response Trends -->
+                        <div class="col-12 mb-4">
+                            <div class="card chart-card">
+                                <div class="card-header bg-gradient">
+                                    <h6 class="mb-0">
+                                        <i class="bi bi-graph-up text-info"></i> Daily Response Trends
+                                    </h6>
+                                </div>
+                                <div class="card-body position-relative d-flex align-items-center justify-content-center" id="lineChartContainer">
+                                    <div class="chart-content loaded">
+                                        <canvas id="lineChart" class="chart-canvas" width="600" height="250"></canvas>
+                                    </div>
+                                    <div class="chart-placeholder" id="lineChartPlaceholder">
+                                        <div class="chart-placeholder-icon">
+                                            <i class="bi bi-graph-up"></i>
+                                        </div>
+                                        <div class="chart-placeholder-text">No daily response trends available</div>
+                                    </div>
+                                    <div class="no-data-overlay" id="lineChartNoData">
+                                        <div class="empty-state compact-empty-state">
+                                            <div class="empty-state-icon">
+                                                <i class="bi bi-graph-down"></i>
+                                            </div>
+                                            <div class="empty-state-title">No Trend Data</div>
+                                            <div class="empty-state-description">Collect responses over time to see daily trends</div>
+                                            <div class="empty-state-action">
+                                                <small class="text-muted">Try adjusting the date range or create more surveys</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="loading-overlay">
+                                        <div class="loading-spinner"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        </div>
+                    {% endif %}
+                    <!-- End Overall Empty State -->
+
+                    <!-- Loading Spinner -->
+                    <div id="loadingSpinner" class="text-center" style="display: none;">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-2 text-muted">Updating charts...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- My Surveys -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="bi bi-list-ul"></i> My Surveys
+                    </h5>
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="filterSurveys('all')">All</button>
+                        <button type="button" class="btn btn-outline-success btn-sm" onclick="filterSurveys('active')">Active</button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="filterSurveys('inactive')">Inactive</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if survey_stats %}
+                        <div class="row">
+                            {% for stat in survey_stats %}
+                            <div class="col-md-6 col-lg-4 mb-3 survey-item" data-status="{% if stat.is_open %}active{% else %}inactive{% endif %}">
+                                <div class="card h-100">
+                                        <div class="card-body">
+                                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                                <h6 class="card-title mb-0">{{ stat.survey.title }}</h6>
+                                            <span class="badge {% if stat.is_open %}bg-success{% else %}bg-secondary{% endif %}">
+                                                {% if stat.is_open %}Active{% else %}Inactive{% endif %}
+                                                    </span>
+                                        </div>
+                                        <p class="card-text text-muted small">{{ stat.survey.description|truncatechars:100 }}</p>
+                                        <div class="row text-center">
+                                            <div class="col-3">
+                                                <small class="text-muted">Total</small>
+                                                <div class="fw-bold">{{ stat.total_responses }}</div>
+                                            </div>
+                                            <div class="col-3">
+                                                <small class="text-muted">Current</small>
+                                                <div class="fw-bold text-success">{{ stat.current_version_responses }}</div>
+                                            </div>
+                                            <div class="col-3">
+                                                <small class="text-muted">Outdated</small>
+                                                <div class="fw-bold text-warning">{{ stat.outdated_version_responses }}</div>
+                                            </div>
+                                            <div class="col-3">
+                                                <small class="text-muted">Questions</small>
+                                                <div class="fw-bold">{{ stat.active_questions_count }}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="card-footer bg-transparent">
+                                        <div class="btn-group w-100" role="group">
+                                            <a href="{% url 'edit_survey' stat.survey.id %}" class="btn btn-outline-primary btn-sm">
+                                                    <i class="bi bi-pencil"></i> Edit
+                                                </a>
+                                            <a href="{% url 'survey_analytics' stat.survey.id %}" class="btn btn-outline-info btn-sm">
+                                                <i class="bi bi-graph-up"></i> Analytics
+                                            </a>
+                                            <a href="{% url 'survey_responses' stat.survey.id %}" class="btn btn-outline-success btn-sm">
+                                                    <i class="bi bi-eye"></i> Responses
+                                                </a>
+                                        </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="bi bi-clipboard-data fs-1 text-muted mb-3"></i>
+                            <h5 class="text-muted">No surveys yet</h5>
+                            <p class="text-muted">Create your first survey to get started.</p>
+                            <a href="{% url 'create_survey' %}" class="btn btn-primary">
+                                <i class="bi bi-plus-circle"></i> Create Survey
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .chart-container {
+        position: relative;
+        height: 300px;
+        width: 100%;
+    }
+    .analytics-card .card-body {
+        min-height: 350px;
+    }
+    
+    /* Fluid chart transitions */
+    .chart-canvas {
+        transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        transform-origin: center;
+    }
+    
+    .chart-updating .chart-canvas {
+        opacity: 0.7;
+        transform: scale(0.98);
+    }
+    
+    .chart-loaded .chart-canvas {
+        opacity: 1;
+        transform: scale(1);
+    }
+    
+    /* Smooth filter controls */
+    .filter-controls {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        border-radius: 15px;
+        padding: 25px;
+        margin-bottom: 25px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .filter-controls:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+    }
+    
+    .form-select, .form-control {
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        border: 2px solid #e9ecef;
+        border-radius: 10px;
+    }
+    
+    .form-select:focus, .form-control:focus {
+        border-color: #0d6efd;
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.15);
+        transform: translateY(-1px) scale(1.02);
+    }
+    
+    /* Fluid chart card animations */
+    .chart-card {
+        transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        border-radius: 15px;
+        overflow: hidden;
+        border: none;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    }
+    
+    .chart-card:hover {
+        transform: translateY(-3px) scale(1.01);
+        box-shadow: 0 12px 40px rgba(0,0,0,0.15);
+    }
+    
+    .chart-card .card-header {
+        background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+        border-bottom: 1px solid rgba(0,0,0,0.05);
+        transition: all 0.3s ease;
+    }
+    
+    /* Smooth loading states */
+    .loading-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(255, 255, 255, 0.9);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        backdrop-filter: blur(2px);
+        z-index: 10;
+    }
+    
+    .loading-overlay.show {
+        opacity: 1;
+        visibility: visible;
+    }
+    
+    .loading-spinner {
+        width: 40px;
+        height: 40px;
+        border: 3px solid #f3f3f3;
+        border-top: 3px solid #0d6efd;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    
+    /* Fluid survey item transitions */
+    .survey-item {
+        transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        transform-origin: center;
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+    
+    .survey-item.hide {
+        opacity: 0;
+        transform: scale(0.95) translateY(-10px);
+        pointer-events: none;
+    }
+    
+    .survey-item.show {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+    
+    /* Smooth button transitions */
+    .btn {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        border-radius: 10px;
+    }
+    
+    .btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    }
+    
+    .btn:active {
+        transform: translateY(0);
+        transition: all 0.1s ease;
+    }
+    
+    /* Notification animations */
+    .notification {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 9999;
+        transform: translateX(100%) scale(0.8);
+        opacity: 0;
+        transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    
+    .notification.show {
+        transform: translateX(0) scale(1);
+        opacity: 1;
+    }
+    
+    .notification.hide {
+        transform: translateX(100%) scale(0.8);
+        opacity: 0;
+    }
+    
+    /* Fluid chart content transitions */
+    .chart-content {
+        transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .chart-content.updating {
+        opacity: 0.6;
+        transform: translateY(5px);
+        filter: blur(1px);
+    }
+    
+    .chart-content.loaded {
+        opacity: 1;
+        transform: translateY(0);
+        filter: blur(0);
+    }
+    /* Empty state styling */
+    .empty-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 20px 15px;
+        text-align: center;
+        opacity: 0;
+        transform: translateY(10px);
+        transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        height: 100%;
+        min-height: 200px;
+    }
+    
+    .empty-state.show {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    
+    .empty-state-icon {
+        font-size: 2rem;
+        color: #6c757d;
+        margin-bottom: 12px;
+        opacity: 0.8;
+    }
+    
+    .empty-state-title {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #495057;
+        margin-bottom: 8px;
+    }
+    
+    .empty-state-description {
+        color: #6c757d;
+        margin-bottom: 15px;
+        max-width: 250px;
+        font-size: 0.9rem;
+        line-height: 1.4;
+    }
+    
+    .empty-state-action {
+        margin-top: 8px;
+    }
+    
+    /* Chart placeholder when no data */
+    .chart-placeholder {
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 200px;
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        border-radius: 10px;
+        border: 2px dashed #dee2e6;
+        transition: all 0.4s ease;
+        margin: 10px;
+    }
+    
+    .chart-placeholder.show {
+        display: flex;
+    }
+    
+    .chart-placeholder:hover {
+        border-color: #0d6efd;
+        background: linear-gradient(135deg, #f0f8ff 0%, #e6f3ff 100%);
+    }
+    
+    .chart-placeholder-icon {
+        font-size: 1.8rem;
+        color: #adb5bd;
+        margin-bottom: 10px;
+    }
+    
+    .chart-placeholder-text {
+        color: #6c757d;
+        font-weight: 500;
+        font-size: 0.9rem;
+    }
+    
+    /* No data overlay */
+    .no-data-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(255, 255, 255, 0.98);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        border-radius: 15px;
+        backdrop-filter: blur(1px);
+        z-index: 5;
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .no-data-overlay.show {
+        display: flex;
+    }
+    
+    /* Adjust chart container heights for better fit */
+    .chart-card .card-body {
+        min-height: 250px;
+        max-height: 350px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+    }
+    
+    /* Specific adjustments for different chart types */
+    #pieChartContainer {
+        min-height: 220px;
+        max-height: 280px;
+    }
+    
+    #barChartContainer {
+        min-height: 220px;
+        max-height: 280px;
+    }
+    
+    #lineChartContainer {
+        min-height: 280px;
+        max-height: 350px;
+    }
+    
+    /* Responsive canvas sizing */
+    .chart-canvas {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+    }
+    
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+        .chart-card .card-body {
+            min-height: 200px;
+            max-height: 250px;
+        }
+        
+        .compact-empty-state {
+            padding: 10px 8px;
+            min-height: 120px;
+        }
+        
+        .compact-empty-state .empty-state-icon {
+            font-size: 1.2rem;
+            margin-bottom: 6px;
+        }
+        
+        .compact-empty-state .empty-state-title {
+            font-size: 0.8rem;
+            margin-bottom: 4px;
+        }
+        
+        .compact-empty-state .empty-state-description {
+            font-size: 0.7rem;
+            max-width: 180px;
+            margin-bottom: 8px;
+        }
+        
+        .chart-placeholder {
+            height: 150px;
+            margin: 5px;
+        }
+        
+        .chart-placeholder-icon {
+            font-size: 1.4rem;
+            margin-bottom: 8px;
+        }
+        
+        .chart-placeholder-text {
+            font-size: 0.8rem;
+        }
+    }
+    
+    @media (max-width: 576px) {
+        .chart-card .card-body {
+            min-height: 180px;
+            max-height: 220px;
+        }
+        
+        .compact-empty-state {
+            min-height: 100px;
+        }
+        
+        .chart-placeholder {
+            height: 120px;
+        }
+    }
+    
+    /* Compact empty states for smaller charts */
+    .compact-empty-state {
+        padding: 15px 10px;
+        min-height: 150px;
+    }
+    
+    .compact-empty-state .empty-state-icon {
+        font-size: 1.5rem;
+        margin-bottom: 8px;
+    }
+    
+    .compact-empty-state .empty-state-title {
+        font-size: 0.9rem;
+        margin-bottom: 6px;
+    }
+    
+    .compact-empty-state .empty-state-description {
+        font-size: 0.8rem;
+        max-width: 200px;
+        margin-bottom: 10px;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+// Global variables for charts
+let pieChart, barChart, lineChart;
+
+// Initialize dashboard analytics with fluid transitions
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize with smooth fade-in
+    initializeChartContainers();
+    
+    // Load initial analytics data
+    setTimeout(() => loadAnalyticsData(true), 200);
+    
+    // Setup filter event listeners
+    setupFluidFilterEventListeners();
+    
+    // Load sections for filter
+    loadSections();
+    
+    // Set default date range (last 30 days)
+    setDefaultDateRange();
+});
+
+function initializeChartContainers() {
+    // Add smooth initial appearance
+    const containers = document.querySelectorAll('.chart-card');
+    containers.forEach((container, index) => {
+        container.style.opacity = '0';
+        container.style.transform = 'translateY(20px)';
+        
+        setTimeout(() => {
+            container.style.transition = 'all 0.6s cubic-bezier(0.4, 0, 0.2, 1)';
+            container.style.opacity = '1';
+            container.style.transform = 'translateY(0)';
+        }, index * 150);
+    });
+}
+
+function setupFluidFilterEventListeners() {
+    const surveyFilter = document.getElementById('surveyFilter');
+    const sectionFilter = document.getElementById('sectionFilter');
+    const dateFromFilter = document.getElementById('dateFromFilter');
+    const dateToFilter = document.getElementById('dateToFilter');
+    const applyButton = document.getElementById('applyFilters');
+    const resetButton = document.getElementById('resetFilters');
+    
+    // Smooth auto-apply with intelligent debouncing
+    let filterTimeout;
+    [surveyFilter, sectionFilter, dateFromFilter, dateToFilter].forEach(filter => {
+        filter.addEventListener('change', function() {
+            // Visual feedback on filter change
+            this.style.transform = 'scale(1.02)';
+            setTimeout(() => {
+                this.style.transform = 'scale(1)';
+            }, 150);
+            
+            clearTimeout(filterTimeout);
+            filterTimeout = setTimeout(() => {
+                loadAnalyticsData();
+            }, 400); // Slightly longer for smoother feel
+        });
+    });
+    
+    // Manual apply with smooth feedback
+    applyButton.addEventListener('click', function() {
+        // Smooth button animation
+        this.style.transform = 'scale(0.95)';
+        this.innerHTML = '<i class="bi bi-hourglass-split"></i> Applying...';
+        this.disabled = true;
+        
+        setTimeout(() => {
+            this.style.transform = 'scale(1)';
+            loadAnalyticsData().finally(() => {
+                this.innerHTML = '<i class="bi bi-funnel"></i> Apply Filters';
+                this.disabled = false;
+            });
+        }, 100);
+    });
+    
+    // Reset with fluid animation
+    resetButton.addEventListener('click', function() {
+        fluidResetFilters();
+    });
+}
+
+function fluidResetFilters() {
+    const filterControls = document.querySelector('.filter-controls');
+    
+    // Smooth reset animation
+    filterControls.style.transform = 'scale(0.98)';
+    filterControls.style.opacity = '0.8';
+    
+    // Reset values
+    document.getElementById('surveyFilter').value = 'all';
+    document.getElementById('sectionFilter').value = 'all';
+    setDefaultDateRange();
+    
+    setTimeout(() => {
+        filterControls.style.transform = 'scale(1)';
+        filterControls.style.opacity = '1';
+        loadAnalyticsData();
+    }, 200);
+}
+
+function setDefaultDateRange() {
+    const today = new Date();
+    const thirtyDaysAgo = new Date(today.getTime() - (30 * 24 * 60 * 60 * 1000));
+    
+    document.getElementById('dateToFilter').valueAsDate = today;
+    document.getElementById('dateFromFilter').valueAsDate = thirtyDaysAgo;
+}
+
+async function loadSections() {
+    try {
+        // For now, we'll populate sections from the existing survey data
+        // In a real implementation, you might want a dedicated API endpoint for sections
+        const sectionFilter = document.getElementById('sectionFilter');
+        
+        // Clear existing options except "All Sections"
+        sectionFilter.innerHTML = '<option value="all">All Sections</option>';
+        
+        // You could add a dedicated API call here to get all sections
+        // For now, this will be populated when analytics data is loaded
+    } catch (error) {
+        console.error('Error loading sections:', error);
+    }
+}
+
+async function loadAnalyticsData(isInitialLoad = false) {
+    try {
+        // Show fluid loading state
+        if (!isInitialLoad) {
+            showFluidLoadingState();
+        }
+        
+        // Get filter values
+        const surveyId = document.getElementById('surveyFilter').value;
+        const sectionId = document.getElementById('sectionFilter').value;
+        const dateFrom = document.getElementById('dateFromFilter').value;
+        const dateTo = document.getElementById('dateToFilter').value;
+        
+        // Build query parameters
+        const params = new URLSearchParams();
+        if (surveyId) params.append('survey_id', surveyId);
+        if (sectionId) params.append('section_id', sectionId);
+        if (dateFrom) params.append('date_from', dateFrom);
+        if (dateTo) params.append('date_to', dateTo);
+        
+        // Fetch analytics data
+        const response = await fetch(`{% url 'dashboard_analytics_api' %}?${params}`);
+        const result = await response.json();
+        
+        if (result.success) {
+            // Wait for smooth transition timing
+            if (!isInitialLoad) {
+                await new Promise(resolve => setTimeout(resolve, 300));
+            }
+            
+            // Update charts with fluid animations
+            await updateChartsFluidly(result.data);
+            
+            // Update sections in filter
+            updateSectionFilter(result.data.bar_chart_data);
+            
+            // Show success with subtle feedback
+            if (!isInitialLoad) {
+                showFluidSuccess();
+            }
+        } else {
+            console.error('Error loading analytics data:', result.error);
+            showFluidError('Failed to load analytics data');
+        }
+        
+    } catch (error) {
+        console.error('Error fetching analytics data:', error);
+        showFluidError('Network error occurred');
+    } finally {
+        // Hide loading state smoothly
+        hideFluidLoadingState();
+    }
+}
+
+async function updateChartsFluidly(data) {
+    // Check if we have any data at all
+    const hasData = data.has_data;
+    
+    // Get all chart containers
+    const containers = ['pieChartContainer', 'barChartContainer', 'lineChartContainer'];
+    
+    // Start transition for all charts simultaneously
+    containers.forEach(containerId => {
+        const container = document.getElementById(containerId);
+        const content = container.querySelector('.chart-content');
+        if (content) {
+            content.classList.remove('loaded');
+            content.classList.add('updating');
+        }
+    });
+    
+    // Wait for transition to start
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    // Update charts with empty state handling
+    await Promise.all([
+        updatePieChartFluid(data.pie_chart_data, hasData.pie_chart),
+        updateBarChartFluid(data.bar_chart_data, hasData.bar_chart),
+        updateLineChartFluid(data.line_chart_data, hasData.line_chart)
+    ]);
+    
+    // Complete transition for all charts
+    containers.forEach(containerId => {
+        const container = document.getElementById(containerId);
+        const content = container.querySelector('.chart-content');
+        if (content) {
+            content.classList.remove('updating');
+            content.classList.add('loaded');
+        }
+    });
+}
+
+function showFluidLoadingState() {
+    const overlays = document.querySelectorAll('.loading-overlay');
+    overlays.forEach(overlay => {
+        overlay.classList.add('show');
+    });
+}
+
+function hideFluidLoadingState() {
+    const overlays = document.querySelectorAll('.loading-overlay');
+    overlays.forEach(overlay => {
+        overlay.classList.remove('show');
+    });
+}
+
+function showFluidSuccess() {
+    createFluidNotification('success', '<i class="bi bi-check-circle"></i> Charts updated', 2000);
+}
+
+function showFluidError(message) {
+    createFluidNotification('error', `<i class="bi bi-exclamation-circle"></i> ${message}`, 3000);
+}
+
+function createFluidNotification(type, message, duration) {
+    const notification = document.createElement('div');
+    notification.className = `notification alert alert-${type === 'success' ? 'success' : 'danger'}`;
+    notification.innerHTML = message;
+    
+    document.body.appendChild(notification);
+    
+    // Smooth entrance
+    setTimeout(() => notification.classList.add('show'), 50);
+    
+    // Smooth exit
+    setTimeout(() => {
+        notification.classList.add('hide');
+        setTimeout(() => notification.remove(), 500);
+    }, duration);
+}
+
+// Empty state helper functions
+function showChartEmptyState(chartType, noDataOverlay, placeholder, chartContent) {
+    // Hide chart content
+    if (chartContent) {
+        chartContent.style.display = 'none';
+    }
+    
+    // Show appropriate empty state
+    if (noDataOverlay) {
+        noDataOverlay.classList.add('show');
+        setTimeout(() => {
+            const emptyState = noDataOverlay.querySelector('.empty-state');
+            if (emptyState) {
+                emptyState.classList.add('show');
+            }
+        }, 100);
+    }
+}
+
+function hideChartEmptyState(noDataOverlay, placeholder, chartContent) {
+    // Hide empty states
+    if (noDataOverlay) {
+        const emptyState = noDataOverlay.querySelector('.empty-state');
+        if (emptyState) {
+            emptyState.classList.remove('show');
+        }
+        setTimeout(() => {
+            noDataOverlay.classList.remove('show');
+        }, 200);
+    }
+    
+    if (placeholder) {
+        placeholder.classList.remove('show');
+    }
+    
+    // Show chart content
+    if (chartContent) {
+        setTimeout(() => {
+            chartContent.style.display = 'block';
+        }, 300);
+    }
+}
+
+function updateSectionFilter(barChartData) {
+    const sectionFilter = document.getElementById('sectionFilter');
+    const currentValue = sectionFilter.value;
+    
+    // Clear existing options except "All Sections"
+    sectionFilter.innerHTML = '<option value="all">All Sections</option>';
+    
+    // Add sections from bar chart data
+    barChartData.forEach(section => {
+        const option = document.createElement('option');
+        option.value = section.section_id;
+        option.textContent = `${section.section_name} (${section.section_code})`;
+        sectionFilter.appendChild(option);
+    });
+    
+    // Restore previous selection if still valid
+    sectionFilter.value = currentValue;
+}
+
+async function updatePieChartFluid(pieData, hasData = true) {
+    const ctx = document.getElementById('pieChart').getContext('2d');
+    const chartContent = document.querySelector('#pieChartContainer .chart-content');
+    const noDataOverlay = document.getElementById('pieChartNoData');
+    const placeholder = document.getElementById('pieChartPlaceholder');
+    
+    // Handle empty state
+    if (!hasData || !pieData || pieData.length === 0 || pieData.every(item => item.responses === 0)) {
+        showChartEmptyState('pie', noDataOverlay, placeholder, chartContent);
+        if (pieChart) {
+            pieChart.destroy();
+            pieChart = null;
+        }
+        return;
+    }
+    
+    // Hide empty state and show chart
+    hideChartEmptyState(noDataOverlay, placeholder, chartContent);
+    
+    // Smoothly destroy existing chart
+    if (pieChart) {
+        // Fade out animation
+        await new Promise(resolve => {
+            const canvas = pieChart.canvas;
+            canvas.style.transition = 'opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
+            canvas.style.opacity = '0.3';
+            
+            setTimeout(() => {
+                pieChart.destroy();
+                canvas.style.opacity = '1';
+                canvas.style.transition = '';
+                resolve();
+            }, 200);
+        });
+    }
+    
+    const labels = pieData.map(item => item.survey_title);
+    const data = pieData.map(item => item.percentage);
+    const colors = generateFluidColors(pieData.length);
+    
+    pieChart = new Chart(ctx, {
+        type: 'pie',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: data,
+                backgroundColor: colors,
+                borderColor: colors.map(color => color.replace('0.8', '1')),
+                borderWidth: 2,
+                hoverOffset: 8
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: {
+                duration: 1000,
+                easing: 'easeOutQuart',
+                animateRotate: true,
+                animateScale: true
+            },
+            interaction: {
+                intersect: false,
+                mode: 'index'
+            },
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        boxWidth: 12,
+                        font: {
+                            size: 11
+                        },
+                        padding: 15,
+                        usePointStyle: true
+                    }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(0,0,0,0.8)',
+                    titleColor: 'white',
+                    bodyColor: 'white',
+                    borderColor: 'rgba(255,255,255,0.3)',
+                    borderWidth: 1,
+                    callbacks: {
+                        label: function(context) {
+                            const item = pieData[context.dataIndex];
+                            return `${context.label}: ${item.responses}/${item.possible} (${context.parsed}%)`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+async function updateBarChartFluid(barData, hasData = true) {
+    const ctx = document.getElementById('barChart').getContext('2d');
+    const chartContent = document.querySelector('#barChartContainer .chart-content');
+    const noDataOverlay = document.getElementById('barChartNoData');
+    const placeholder = document.getElementById('barChartPlaceholder');
+    
+    // Handle empty state
+    if (!hasData || !barData || barData.length === 0 || barData.every(item => item.response_count === 0)) {
+        showChartEmptyState('bar', noDataOverlay, placeholder, chartContent);
+        if (barChart) {
+            barChart.destroy();
+            barChart = null;
+        }
+        return;
+    }
+    
+    // Hide empty state and show chart
+    hideChartEmptyState(noDataOverlay, placeholder, chartContent);
+    
+    // Smoothly destroy existing chart
+    if (barChart) {
+        await new Promise(resolve => {
+            const canvas = barChart.canvas;
+            canvas.style.transition = 'opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
+            canvas.style.opacity = '0.3';
+            
+            setTimeout(() => {
+                barChart.destroy();
+                canvas.style.opacity = '1';
+                canvas.style.transition = '';
+                resolve();
+            }, 200);
+        });
+    }
+    
+    const labels = barData.map(item => item.section_code || item.section_name);
+    const data = barData.map(item => item.response_count);
+    
+    barChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Responses',
+                data: data,
+                backgroundColor: 'rgba(54, 162, 235, 0.8)',
+                borderColor: 'rgba(54, 162, 235, 1)',
+                borderWidth: 2,
+                borderRadius: 6,
+                borderSkipped: false,
+                hoverBackgroundColor: 'rgba(54, 162, 235, 0.9)',
+                hoverBorderColor: 'rgba(54, 162, 235, 1)',
+                hoverBorderWidth: 3
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: {
+                duration: 1200,
+                easing: 'easeOutBounce'
+            },
+            interaction: {
+                mode: 'index',
+                intersect: false,
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1
+                    },
+                    grid: {
+                        color: 'rgba(0,0,0,0.1)',
+                        lineWidth: 1
+                    }
+                },
+                x: {
+                    ticks: {
+                        maxRotation: 45,
+                        minRotation: 0
+                    },
+                    grid: {
+                        display: false
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(0,0,0,0.8)',
+                    titleColor: 'white',
+                    bodyColor: 'white',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 1,
+                    callbacks: {
+                        title: function(context) {
+                            const item = barData[context[0].dataIndex];
+                            return `${item.section_name} (${item.section_code})`;
+                        },
+                        label: function(context) {
+                            return `Responses: ${context.parsed.y}`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+async function updateLineChartFluid(lineData, hasData = true) {
+    const ctx = document.getElementById('lineChart').getContext('2d');
+    const chartContent = document.querySelector('#lineChartContainer .chart-content');
+    const noDataOverlay = document.getElementById('lineChartNoData');
+    const placeholder = document.getElementById('lineChartPlaceholder');
+    
+    // Handle empty state
+    if (!hasData || !lineData || lineData.length === 0 || lineData.every(item => item.response_count === 0)) {
+        showChartEmptyState('line', noDataOverlay, placeholder, chartContent);
+        if (lineChart) {
+            lineChart.destroy();
+            lineChart = null;
+        }
+        return;
+    }
+    
+    // Hide empty state and show chart
+    hideChartEmptyState(noDataOverlay, placeholder, chartContent);
+    
+    // Smoothly destroy existing chart
+    if (lineChart) {
+        await new Promise(resolve => {
+            const canvas = lineChart.canvas;
+            canvas.style.transition = 'opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
+            canvas.style.opacity = '0.3';
+            
+            setTimeout(() => {
+                lineChart.destroy();
+                canvas.style.opacity = '1';
+                canvas.style.transition = '';
+                resolve();
+            }, 200);
+        });
+    }
+    
+    const labels = lineData.map(item => item.date_formatted);
+    const data = lineData.map(item => item.response_count);
+    
+    lineChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Daily Responses',
+                data: data,
+                borderColor: 'rgba(75, 192, 192, 1)',
+                backgroundColor: 'rgba(75, 192, 192, 0.1)',
+                borderWidth: 3,
+                fill: true,
+                tension: 0.4,
+                pointBackgroundColor: 'rgba(75, 192, 192, 1)',
+                pointBorderColor: '#fff',
+                pointBorderWidth: 2,
+                pointRadius: 4,
+                pointHoverRadius: 8,
+                pointHoverBackgroundColor: 'rgba(75, 192, 192, 1)',
+                pointHoverBorderColor: '#fff',
+                pointHoverBorderWidth: 3
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: {
+                duration: 1400,
+                easing: 'easeOutCubic'
+            },
+            interaction: {
+                mode: 'index',
+                intersect: false,
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1
+                    },
+                    grid: {
+                        color: 'rgba(0,0,0,0.1)',
+                        lineWidth: 1
+                    }
+                },
+                x: {
+                    ticks: {
+                        maxTicksLimit: 15,
+                        maxRotation: 45
+                    },
+                    grid: {
+                        color: 'rgba(0,0,0,0.05)',
+                        lineWidth: 1
+                    }
+                }
+            },
+            elements: {
+                point: {
+                    hoverBackgroundColor: 'rgba(75, 192, 192, 1)',
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(0,0,0,0.8)',
+                    titleColor: 'white',
+                    bodyColor: 'white',
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    borderWidth: 1,
+                    callbacks: {
+                        title: function(context) {
+                            const item = lineData[context[0].dataIndex];
+                            return new Date(item.date).toLocaleDateString();
+                        },
+                        label: function(context) {
+                            return `Responses: ${context.parsed.y}`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+
+
+function updateSectionFilter(barChartData) {
+    const sectionFilter = document.getElementById('sectionFilter');
+    const currentValue = sectionFilter.value;
+    
+    // Smooth filter update animation
+    sectionFilter.style.transition = 'opacity 0.3s ease';
+    sectionFilter.style.opacity = '0.7';
+    
+    setTimeout(() => {
+        // Clear existing options except "All Sections"
+        sectionFilter.innerHTML = '<option value="all">All Sections</option>';
+        
+        // Add sections from bar chart data
+        barChartData.forEach(section => {
+            const option = document.createElement('option');
+            option.value = section.section_id;
+            option.textContent = `${section.section_name} (${section.section_code})`;
+            sectionFilter.appendChild(option);
+        });
+        
+        // Restore previous selection if still valid
+        sectionFilter.value = currentValue;
+        
+        // Smooth completion
+        sectionFilter.style.opacity = '1';
+    }, 150);
+}
+
+function filterSurveys(status) {
+    const items = document.querySelectorAll('.survey-item');
+    const buttons = document.querySelectorAll('.btn-group .btn');
+    
+    // Fluid button state animation
+    buttons.forEach((btn, index) => {
+        btn.classList.remove('active');
+        
+        setTimeout(() => {
+            btn.style.transform = 'scale(0.95)';
+            setTimeout(() => {
+                btn.style.transform = 'scale(1)';
+            }, 100);
+        }, index * 50);
+    });
+    
+    // Highlight active button with smooth transition
+    setTimeout(() => {
+        event.target.classList.add('active');
+        event.target.style.transform = 'scale(1.05)';
+        setTimeout(() => {
+            event.target.style.transform = 'scale(1)';
+        }, 200);
+    }, 100);
+    
+    // Fluid item filtering with wave effect
+    items.forEach((item, index) => {
+        const shouldShow = status === 'all' || item.dataset.status === status;
+        
+        setTimeout(() => {
+            if (shouldShow) {
+                item.classList.remove('hide');
+                item.classList.add('show');
+                item.style.display = 'block';
+            } else {
+                item.classList.remove('show');
+                item.classList.add('hide');
+                
+                setTimeout(() => {
+                    if (item.classList.contains('hide')) {
+                        item.style.display = 'none';
+                    }
+                }, 500);
+            }
+        }, index * 80); // Staggered wave effect
+    });
+}
+
+// Enhanced fluid color generation
+function generateFluidColors(count) {
+    const baseColors = [
+        'rgba(255, 99, 132, 0.8)',   // Coral Red
+        'rgba(54, 162, 235, 0.8)',   // Ocean Blue  
+        'rgba(255, 205, 86, 0.8)',   // Sunny Yellow
+        'rgba(75, 192, 192, 0.8)',   // Teal
+        'rgba(153, 102, 255, 0.8)',  // Lavender
+        'rgba(255, 159, 64, 0.8)',   // Orange
+        'rgba(99, 255, 132, 0.8)',   // Spring Green
+        'rgba(255, 99, 255, 0.8)',   // Magenta
+        'rgba(132, 99, 255, 0.8)',   // Purple
+        'rgba(255, 206, 84, 0.8)',   // Gold
+        'rgba(75, 192, 255, 0.8)',   // Sky Blue
+        'rgba(255, 99, 171, 0.8)'    // Pink
+    ];
+    
+    const result = [];
+    for (let i = 0; i < count; i++) {
+        if (i < baseColors.length) {
+            result.push(baseColors[i]);
+        } else {
+            // Generate harmonious colors using golden ratio
+            const hue = (i * 137.508) % 360;
+            const saturation = 65 + (i % 4) * 8;
+            const lightness = 55 + (i % 3) * 10;
+            result.push(`hsla(${hue}, ${saturation}%, ${lightness}%, 0.8)`);
+        }
+    }
+    return result;
+}
+
+function setDefaultDateRange() {
+    const today = new Date();
+    const thirtyDaysAgo = new Date(today.getTime() - (30 * 24 * 60 * 60 * 1000));
+    
+    const dateToInput = document.getElementById('dateToFilter');
+    const dateFromInput = document.getElementById('dateFromFilter');
+    
+    // Smooth date setting animation
+    [dateToInput, dateFromInput].forEach(input => {
+        input.style.transition = 'all 0.3s ease';
+        input.style.transform = 'scale(0.98)';
+    });
+    
+    dateToInput.valueAsDate = today;
+    dateFromInput.valueAsDate = thirtyDaysAgo;
+    
+    setTimeout(() => {
+        [dateToInput, dateFromInput].forEach(input => {
+            input.style.transform = 'scale(1)';
+        });
+    }, 100);
+}
+
+async function loadSections() {
+    // Placeholder for sections loading with smooth animation
+    const sectionFilter = document.getElementById('sectionFilter');
+    
+    sectionFilter.style.transition = 'opacity 0.3s ease';
+    sectionFilter.style.opacity = '0.7';
+    
+    // Clear existing options except "All Sections"
+    sectionFilter.innerHTML = '<option value="all">All Sections</option>';
+    
+    setTimeout(() => {
+        sectionFilter.style.opacity = '1';
+    }, 200);
+}
+</script>
+{% endblock %}

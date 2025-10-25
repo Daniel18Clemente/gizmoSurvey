@@ -1,0 +1,809 @@
+{% extends 'myapp/base.html' %}
+
+{% block title %}{{ survey.title }} - Analytics{% endblock %}
+
+{% block extra_css %}
+<style>
+    .chart-container {
+        position: relative;
+        height: 300px;
+        width: 100%;
+    }
+    
+    .analytics-card .card-body {
+        min-height: 350px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2 class="mb-1">
+                        <i class="bi bi-graph-up"></i> Survey Analytics
+                    </h2>
+                    <p class="text-muted mb-0">{{ survey.title }}</p>
+                </div>
+                <div class="d-flex gap-2">
+                    <a href="{% url 'survey_responses' survey.id %}" class="btn btn-outline-primary">
+                        <i class="bi bi-eye"></i> View Responses
+                    </a>
+                    <a href="{% url 'edit_survey' survey.id %}" class="btn btn-outline-secondary">
+                        <i class="bi bi-pencil"></i> Edit Survey
+                    </a>
+                    <a href="{% url 'teacher_dashboard' %}" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left"></i> Dashboard
+                        </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Controls -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-funnel"></i> Filters
+                    </h5>
+                        </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="sectionFilter" class="form-label fw-semibold">
+                                <i class="bi bi-people me-1"></i>Section
+                            </label>
+                            <select id="sectionFilter" class="form-select">
+                                <option value="all">All Sections</option>
+                                {% for stat in section_stats %}
+                                    <option value="{{ stat.section.id }}">{{ stat.section.name }} ({{ stat.section.code }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="versionFilter" class="form-label fw-semibold">
+                                <i class="bi bi-layers me-1"></i>Version
+                            </label>
+                            <select id="versionFilter" class="form-select">
+                                <option value="all">All Versions</option>
+                                <option value="current">Current Version ({{ survey.version }})</option>
+                                <option value="outdated">Outdated Versions</option>
+                            </select>
+                    </div>
+                        <div class="col-md-4 mb-3 d-flex align-items-end">
+                            <div class="d-flex gap-2">
+                                <button id="resetFilters" class="btn btn-outline-secondary">
+                                    <i class="bi bi-arrow-clockwise"></i> Reset
+                                </button>
+                                <button id="applyFilters" class="btn btn-primary">
+                                    <i class="bi bi-funnel"></i> Apply
+                                </button>
+                </div>
+                        </div>
+                        </div>
+                    </div>
+                </div>
+                </div>
+            </div>
+            
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title">Total Responses</h6>
+                            <h3 class="mb-0" id="total-responses">{{ total_responses }}</h3>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="bi bi-people fs-1 opacity-75"></i>
+                        </div>
+                        </div>
+                    </div>
+                </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title">Questions</h6>
+                            <h3 class="mb-0" id="total-questions">{{ total_questions }}</h3>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="bi bi-question-circle fs-1 opacity-75"></i>
+                </div>
+                </div>
+                </div>
+                </div>
+            </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title">Status</h6>
+                            <h3 class="mb-0">
+                                {% if survey.is_open %}
+                                    <span class="badge bg-light text-success">Active</span>
+                                {% else %}
+                                    <span class="badge bg-light text-secondary">Closed</span>
+                                {% endif %}
+                            </h3>
+        </div>
+                        <div class="align-self-center">
+                            <i class="bi bi-{% if survey.is_open %}play{% else %}pause{% endif %}-circle fs-1 opacity-75"></i>
+    </div>
+                </div>
+            </div>
+                                </div>
+                                </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title">Version</h6>
+                            <h3 class="mb-0">{{ survey.version }}</h3>
+                            </div>
+                        <div class="align-self-center">
+                            <i class="bi bi-layers fs-1 opacity-75"></i>
+                            </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section Completion -->
+    {% if section_stats %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-people"></i> Section Completion
+                    </h5>
+                </div>
+                <div class="card-body">
+    <div class="row">
+                        {% for stat in section_stats %}
+                        <div class="col-md-6 col-lg-4 mb-3">
+                            <div class="card h-100" data-section-id="{{ stat.section.id }}">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <h6 class="card-title mb-0">{{ stat.section.name }}</h6>
+                                        <span class="badge bg-primary">{{ stat.section.code }}</span>
+                                    </div>
+                                    <p class="card-text text-muted small">{{ stat.section.description|default:"No description" }}</p>
+                                    <div class="row text-center">
+                                        <div class="col-6">
+                                            <small class="text-muted">Responses</small>
+                                            <div class="fw-bold response-count">{{ stat.responses_received }}</div>
+                                    </div>
+                                        <div class="col-6">
+                                            <small class="text-muted">Completion</small>
+                                            <div class="fw-bold text-success completion-rate">{{ stat.completion_rate }}%</div>
+                                </div>
+                            </div>
+                                    <div class="progress mt-2" style="height: 8px;">
+                                        <div class="progress-bar {% if stat.completion_rate >= 80 %}bg-success{% elif stat.completion_rate >= 50 %}bg-warning{% else %}bg-danger{% endif %}" 
+                                             style="width: {{ stat.completion_rate }}%"></div>
+                                    </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                                    </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+    {% endif %}
+
+    <!-- Question Analytics -->
+    {% if analytics_data %}
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-question-circle"></i> Question Analytics
+                    </h5>
+                </div>
+                <div class="card-body">
+        {% for data in analytics_data %}
+                    <div class="card mb-3" data-question="{{ forloop.counter }}">
+                        <div class="card-header">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <h6 class="mb-0">Question {{ forloop.counter }}</h6>
+                        <div>
+                                            <span class="badge bg-light text-dark">{{ data.question.get_question_type_display }}</span>
+                            {% if data.question.is_required %}
+                                <span class="badge bg-danger">Required</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                                </div>
+                        <div class="card-body">
+                                    <h6 class="mb-3">{{ data.question.question_text }}</h6>
+
+                        {% if data.question.question_type == 'multiple_choice' %}
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="chart-container">
+                                            <canvas id="chart{{ forloop.counter }}"></canvas>
+                            </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="table-responsive">
+                                            <table class="table table-sm">
+                                                <thead>
+                                        <tr>
+                                            <th>Option</th>
+                                            <th>Count</th>
+                                            <th>Percentage</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for choice, stats in data.stats.items %}
+                                            <tr>
+                                                <td><strong>{{ choice }}</strong></td>
+                                                <td>{{ stats.count }}</td>
+                                                <td>
+                                                    <div class="d-flex align-items-center">
+                                                        <div class="progress flex-grow-1 me-2" style="height: 8px;">
+                                                            <div class="progress-bar" style="width: {{ stats.percentage }}%"></div>
+                                                        </div>
+                                                        <span class="fw-bold">{{ stats.percentage }}%</span>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                                    </div>
+                                </div>
+                        {% elif data.question.question_type == 'likert_scale' %}
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="chart-container">
+                                            <canvas id="chart{{ forloop.counter }}"></canvas>
+                            </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="table-responsive">
+                                            <table class="table table-sm">
+                                                <thead>
+                                        <tr>
+                                            <th>Scale Value</th>
+                                            <th>Count</th>
+                                            <th>Percentage</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for value, stats in data.stats.items %}
+                                            <tr>
+                                                <td><strong>{{ value }}</strong></td>
+                                                <td>{{ stats.count }}</td>
+                                                <td>
+                                                    <div class="d-flex align-items-center">
+                                                        <div class="progress flex-grow-1 me-2" style="height: 8px;">
+                                                            <div class="progress-bar bg-info" style="width: {{ stats.percentage }}%"></div>
+                                                        </div>
+                                                        <span class="fw-bold">{{ stats.percentage }}%</span>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                                        </div>
+                                </div>
+                            {% elif data.question.question_type in 'short_answer,long_answer' %}
+                                <div class="row">
+                                <div class="col-md-6">
+                                    <h6 class="mb-3">
+                                                    <i class="bi bi-chat-text"></i> Sample Responses
+                                    </h6>
+                                    {% if data.responses %}
+                                            <div class="text-responses-container" style="max-height: 200px; overflow-y: auto;">
+                                                        {% for response in data.responses|slice:":5" %}
+                                                <div class="border-bottom pb-2 mb-2">
+                                                    <small class="text-muted">Response {{ forloop.counter }}:</small>
+                                                                <p class="mb-1">{{ response|truncatechars:100 }}</p>
+                                                </div>
+                                            {% endfor %}
+                                                        {% if data.responses|length > 5 %}
+                                                            <p class="text-muted small">... and {{ data.responses|length|add:"-5" }} more responses</p>
+                                                        {% endif %}
+                                        </div>
+                                    {% else %}
+                                        <div class="text-responses-container">
+                                            <p class="text-muted">No responses yet.</p>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                    <div class="col-md-6">
+                                        <h6 class="mb-3">
+                                            <i class="bi bi-bar-chart"></i> Response Count
+                                        </h6>
+                                        <div class="text-center">
+                                            <h2 class="text-primary response-count-number">{{ data.responses|length }}</h2>
+                                            <p class="text-muted">Total Responses</p>
+                            </div>
+                </div>
+            </div>
+                            {% endif %}
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                                        </div>
+                        </div>
+                    {% else %}
+                        <div class="row">
+                            <div class="col-12">
+            <div class="card">
+                <div class="card-body text-center py-5">
+                    <i class="bi bi-graph-up fs-1 text-muted mb-3"></i>
+                    <h5 class="text-muted">No questions to analyze</h5>
+                    <p class="text-muted">Add questions to your survey to see analytics.</p>
+                    <a href="{% url 'edit_survey' survey.id %}" class="btn btn-primary">
+                        <i class="bi bi-plus-circle"></i> Add Questions
+                    </a>
+                                    </div>
+                                    </div>
+                                </div>
+                            </div>
+    {% endif %}
+                        </div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+// Global variables for charts
+let charts = {};
+let currentFilters = {
+    section: 'all',
+    version: 'all'
+};
+
+// Initialize analytics charts
+document.addEventListener('DOMContentLoaded', function() {
+    initializeQuestionCharts();
+    setupFilterEventListeners();
+    initializeQuestionVisibility();
+});
+
+function initializeQuestionVisibility() {
+    // Ensure all questions are visible on page load
+    const allQuestionCards = document.querySelectorAll('[data-question]');
+    allQuestionCards.forEach(card => {
+        card.style.display = 'block';
+    });
+}
+
+function setupFilterEventListeners() {
+    const sectionFilter = document.getElementById('sectionFilter');
+    const versionFilter = document.getElementById('versionFilter');
+    const applyButton = document.getElementById('applyFilters');
+    const resetButton = document.getElementById('resetFilters');
+    
+    // Auto-apply filters when dropdowns change
+    sectionFilter.addEventListener('change', function() {
+        currentFilters.section = this.value;
+        applyFilters();
+    });
+    
+    versionFilter.addEventListener('change', function() {
+        currentFilters.version = this.value;
+        applyFilters();
+    });
+    
+    // Manual apply button
+    applyButton.addEventListener('click', function() {
+        applyFilters();
+    });
+    
+    // Reset button
+    resetButton.addEventListener('click', function() {
+        resetFilters();
+    });
+}
+
+function applyFilters() {
+    // Show loading state
+    const applyButton = document.getElementById('applyFilters');
+    const originalText = applyButton.innerHTML;
+    applyButton.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Loading...';
+    applyButton.disabled = true;
+    
+    // Build query parameters
+    const params = new URLSearchParams();
+    if (currentFilters.section && currentFilters.section !== 'all') {
+        params.append('section_id', currentFilters.section);
+    }
+    if (currentFilters.version && currentFilters.version !== 'all') {
+        params.append('version_filter', currentFilters.version);
+    }
+    
+    // Make API call to get filtered data
+    const url = `/teacher/survey/{{ survey.id }}/analytics/api/?${params.toString()}`;
+    
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                updateAnalyticsWithFilteredData(data.data);
+            } else {
+                console.error('Error loading filtered data:', data.error);
+                showNotification('Error loading filtered data', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching filtered data:', error);
+            showNotification('Network error occurred', 'error');
+        })
+        .finally(() => {
+            // Restore button state
+            applyButton.innerHTML = originalText;
+            applyButton.disabled = false;
+        });
+}
+
+function resetFilters() {
+    // Reset filter values
+    document.getElementById('sectionFilter').value = 'all';
+    document.getElementById('versionFilter').value = 'all';
+    currentFilters.section = 'all';
+    currentFilters.version = 'all';
+    
+    // Show all question cards first
+    const allQuestionCards = document.querySelectorAll('[data-question]');
+    allQuestionCards.forEach(card => {
+        card.style.display = 'block';
+    });
+    
+    // Apply reset filters (reload original data)
+    applyFilters();
+}
+
+function updateAnalyticsWithFilteredData(data) {
+    // Update statistics cards
+    updateElement('total-responses', data.total_responses);
+    updateElement('total-questions', data.total_questions);
+    
+    // Update section stats
+    updateSectionStats(data.section_stats);
+    
+    // Update question analytics
+    updateQuestionAnalytics(data.analytics_data);
+    
+    showNotification('Filters applied successfully', 'success');
+}
+
+function updateElement(id, value) {
+    const element = document.getElementById(id);
+    if (element) {
+        element.textContent = value;
+    }
+}
+
+function updateSectionStats(sectionStats) {
+    // Update section completion cards
+    sectionStats.forEach((stat, index) => {
+        const sectionCard = document.querySelector(`[data-section-id="${stat.section_id}"]`);
+        if (sectionCard) {
+            // Update response count
+            const responseElement = sectionCard.querySelector('.response-count');
+            if (responseElement) {
+                responseElement.textContent = stat.responses_received;
+            }
+            
+            // Update completion rate
+            const completionElement = sectionCard.querySelector('.completion-rate');
+            if (completionElement) {
+                completionElement.textContent = `${stat.completion_rate}%`;
+            }
+            
+            // Update progress bar
+            const progressBar = sectionCard.querySelector('.progress-bar');
+            if (progressBar) {
+                progressBar.style.width = `${stat.completion_rate}%`;
+                progressBar.className = `progress-bar ${stat.completion_rate >= 80 ? 'bg-success' : stat.completion_rate >= 50 ? 'bg-warning' : 'bg-danger'}`;
+            }
+        }
+    });
+}
+
+function updateQuestionAnalytics(analyticsData) {
+    // First, hide all question cards
+    const allQuestionCards = document.querySelectorAll('[data-question]');
+    allQuestionCards.forEach(card => {
+        card.style.display = 'none';
+    });
+    
+    // Then show and update only the questions that exist in filtered data
+    analyticsData.forEach((questionData, index) => {
+        const questionNumber = index + 1;
+        const questionCard = document.querySelector(`[data-question="${questionNumber}"]`);
+        
+        if (questionCard) {
+            // Show the question card
+            questionCard.style.display = 'block';
+            
+            // Update chart if it exists
+            const chartId = `chart${questionNumber}`;
+            if (charts[chartId] && questionData.chart_data) {
+                try {
+                    charts[chartId].data.labels = questionData.chart_data.labels;
+                    charts[chartId].data.datasets[0].data = questionData.chart_data.data;
+                    charts[chartId].update();
+                } catch (error) {
+                    console.error(`Error updating chart ${chartId}:`, error);
+                }
+            }
+            
+            // Update response tables
+            updateQuestionTable(questionNumber, questionData);
+            
+            // Update text responses
+            updateTextResponses(questionNumber, questionData);
+        }
+    });
+    
+    // Update the question count in statistics
+    updateElement('total-questions', analyticsData.length);
+}
+
+function updateQuestionTable(questionNumber, questionData) {
+    const questionCard = document.querySelector(`[data-question="${questionNumber}"]`);
+    if (!questionCard) return;
+    
+    // Update multiple choice table
+    const tableBody = questionCard.querySelector('tbody');
+    if (tableBody && questionData.stats) {
+        tableBody.innerHTML = '';
+        
+        Object.entries(questionData.stats).forEach(([choice, stats]) => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td><strong>${choice}</strong></td>
+                <td>${stats.count}</td>
+                <td>
+                    <div class="d-flex align-items-center">
+                        <div class="progress flex-grow-1 me-2" style="height: 8px;">
+                            <div class="progress-bar" style="width: ${stats.percentage}%"></div>
+                        </div>
+                        <span class="fw-bold">${stats.percentage}%</span>
+                    </div>
+                </td>
+            `;
+            tableBody.appendChild(row);
+        });
+    }
+}
+
+function updateTextResponses(questionNumber, questionData) {
+    const questionCard = document.querySelector(`[data-question="${questionNumber}"]`);
+    if (!questionCard) return;
+    
+    // Update text response samples
+    const responseContainer = questionCard.querySelector('.text-responses-container');
+    if (responseContainer && questionData.responses) {
+        responseContainer.innerHTML = '';
+        
+        if (questionData.responses.length > 0) {
+            const sampleResponses = questionData.responses.slice(0, 5);
+            sampleResponses.forEach((response, index) => {
+                const responseDiv = document.createElement('div');
+                responseDiv.className = 'border-bottom pb-2 mb-2';
+                responseDiv.innerHTML = `
+                    <small class="text-muted">Response ${index + 1}:</small>
+                    <p class="mb-1">${response.length > 100 ? response.substring(0, 100) + '...' : response}</p>
+                `;
+                responseContainer.appendChild(responseDiv);
+            });
+            
+            if (questionData.responses.length > 5) {
+                const moreDiv = document.createElement('p');
+                moreDiv.className = 'text-muted small';
+                moreDiv.textContent = `... and ${questionData.responses.length - 5} more responses`;
+                responseContainer.appendChild(moreDiv);
+            }
+        } else {
+            const noResponseDiv = document.createElement('p');
+            noResponseDiv.className = 'text-muted';
+            noResponseDiv.textContent = 'No responses yet.';
+            responseContainer.appendChild(noResponseDiv);
+        }
+    }
+    
+    // Update response count
+    const responseCountElement = questionCard.querySelector('.response-count-number');
+    if (responseCountElement) {
+        responseCountElement.textContent = questionData.responses ? questionData.responses.length : 0;
+    }
+}
+
+function showNotification(message, type) {
+    // Create a simple notification
+    const notification = document.createElement('div');
+    notification.className = `alert alert-${type === 'success' ? 'success' : 'danger'} alert-dismissible fade show position-fixed`;
+    notification.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+    notification.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Auto-remove after 3 seconds
+    setTimeout(() => {
+        if (notification.parentNode) {
+            notification.parentNode.removeChild(notification);
+        }
+    }, 3000);
+}
+
+function initializeQuestionCharts() {
+    {% for data in analytics_data %}
+        {% if data.question.question_type == 'multiple_choice' %}
+            try {
+                const ctx{{ forloop.counter }} = document.getElementById('chart{{ forloop.counter }}');
+                if (ctx{{ forloop.counter }}) {
+                    charts['chart{{ forloop.counter }}'] = new Chart(ctx{{ forloop.counter }}, {
+                        type: 'pie',
+                        data: {
+                            labels: [
+                                {% for choice, stats in data.stats.items %}
+                                    '{{ choice|escapejs }}'{% if not forloop.last %},{% endif %}
+                                {% endfor %}
+                            ],
+                            datasets: [{
+                                data: [
+                                    {% for choice, stats in data.stats.items %}
+                                        {{ stats.count }}{% if not forloop.last %},{% endif %}
+                                    {% endfor %}
+                                ],
+                                backgroundColor: [
+                                    'rgba(255, 99, 132, 0.8)',
+                                    'rgba(54, 162, 235, 0.8)',
+                                    'rgba(255, 205, 86, 0.8)',
+                                    'rgba(75, 192, 192, 0.8)',
+                                    'rgba(153, 102, 255, 0.8)',
+                                    'rgba(255, 159, 64, 0.8)'
+                                ],
+                                borderWidth: 2,
+                                borderColor: '#fff',
+                                hoverBorderWidth: 3
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    position: 'bottom',
+                                    labels: {
+                                        padding: 15,
+                                        usePointStyle: true,
+                                        font: {
+                                            size: 11
+                                        }
+                                    }
+                                },
+                                tooltip: {
+                                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                                    titleColor: '#fff',
+                                    bodyColor: '#fff',
+                                    borderColor: '#0d6efd',
+                                    borderWidth: 1,
+                                    cornerRadius: 8,
+                                    callbacks: {
+                                        label: function(context) {
+                                            const label = context.label || '';
+                                            const value = context.parsed;
+                                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                            const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                                            return `${label}: ${value} (${percentage}%)`;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('Error initializing chart {{ forloop.counter }}:', error);
+            }
+        {% elif data.question.question_type == 'likert_scale' %}
+            try {
+                const ctx{{ forloop.counter }} = document.getElementById('chart{{ forloop.counter }}');
+                if (ctx{{ forloop.counter }}) {
+                    charts['chart{{ forloop.counter }}'] = new Chart(ctx{{ forloop.counter }}, {
+                        type: 'bar',
+                        data: {
+                            labels: [
+                                {% for value, stats in data.stats.items %}
+                                    '{{ value|escapejs }}'{% if not forloop.last %},{% endif %}
+                                {% endfor %}
+                            ],
+                            datasets: [{
+                                label: 'Responses',
+                                data: [
+                                    {% for value, stats in data.stats.items %}
+                                        {{ stats.count }}{% if not forloop.last %},{% endif %}
+                                    {% endfor %}
+                                ],
+                                backgroundColor: 'rgba(13, 110, 253, 0.8)',
+                                borderColor: 'rgba(13, 110, 253, 1)',
+                                borderWidth: 2,
+                                borderRadius: 6,
+                                borderSkipped: false,
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    ticks: {
+                                        stepSize: 1
+                                    },
+                                    grid: {
+                                        color: 'rgba(0,0,0,0.1)'
+                                    }
+                                },
+                                x: {
+                                    grid: {
+                                        display: false
+                                    }
+                                }
+                            },
+                            plugins: {
+                                legend: {
+                                    display: false
+                                },
+                                tooltip: {
+                                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                                    titleColor: '#fff',
+                                    bodyColor: '#fff',
+                                    borderColor: '#0d6efd',
+                                    borderWidth: 1,
+                                    cornerRadius: 8,
+                                    callbacks: {
+                                        label: function(context) {
+                                            const label = context.label || '';
+                                            const value = context.parsed.y;
+                                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                            const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                                            return `${label}: ${value} responses (${percentage}%)`;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('Error initializing chart {{ forloop.counter }}:', error);
+            }
+        {% endif %}
+    {% endfor %}
+}
+</script>
+{% endblock %}
