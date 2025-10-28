@@ -200,12 +200,21 @@ def take_survey(request, survey_id):
     if request.method == 'POST':
         form = SurveyResponseForm(survey, request.POST)
         if form.is_valid():
-            # Create survey response
-            response = SurveyResponse.objects.create(
+            # Check if a response already exists for this survey, student, and version
+            response, created = SurveyResponse.objects.get_or_create(
                 survey=survey,
                 student=request.user,
-                survey_version=survey.version
+                survey_version=survey.version,
+                defaults={'is_complete': True}
             )
+            
+            # If response was not newly created, update it
+            if not created:
+                response.is_complete = True
+                response.submitted_at = timezone.now()
+                response.save()
+                # Delete existing answers to replace them
+                response.answers.all().delete()
             
             # Save answers
             for question in survey.questions.filter(is_active=True):
