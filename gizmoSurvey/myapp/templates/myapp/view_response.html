@@ -62,28 +62,6 @@
                 </div>
             </div>
 
-            <!-- Response Status -->
-            <div class="card mb-4">
-                <div class="card-body">
-                    <div class="row text-center">
-                        <div class="col-md-4">
-                            <h4 class="text-primary">{{ answers.count }}</h4>
-                            <small class="text-muted">Questions Answered</small>
-                        </div>
-                        <div class="col-md-4">
-                            <h4 class="text-success">{{ answers.count }}</h4>
-                            <small class="text-muted">Total Questions (Original)</small>
-                        </div>
-                        <div class="col-md-4">
-                            <h4 class="text-info">
-                                {% widthratio answers.count answers.count 100 %}%
-                            </h4>
-                            <small class="text-muted">Completion Rate</small>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
             <!-- Answers -->
             <div class="card">
                 <div class="card-header">

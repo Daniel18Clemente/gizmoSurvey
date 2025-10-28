@@ -72,12 +72,7 @@
                             <div class="mb-3">
                                 <label class="form-label">Answer Options</label>
                                 <div id="optionsContainer">
-                                    <div class="input-group mb-2">
-                                        <input type="text" class="form-control option-input" placeholder="Enter option text">
-                                        <button type="button" class="btn btn-outline-danger remove-option" style="display: none;">
-                                            <i class="bi bi-trash"></i>
-                                        </button>
-                                    </div>
+                                    <!-- Option inputs will be added here dynamically -->
                                 </div>
                                 <button type="button" class="btn btn-outline-primary btn-sm" id="addOption">
                                     <i class="bi bi-plus"></i> Add Option
@@ -159,6 +154,13 @@
     </div>
 </div>
 
+{% if question.question_type == 'multiple_choice' %}
+{{ question.options|json_script:"initial-options" }}
+{% endif %}
+{% if question.question_type == 'likert_scale' %}
+{{ question.likert_labels|json_script:"initial-likert-labels" }}
+{% endif %}
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const questionTypeField = document.getElementById('{{ form.question_type.id_for_label }}');
@@ -207,10 +209,25 @@ document.addEventListener('DOMContentLoaded', function() {
         // Clear existing options
         optionsContainer.innerHTML = '';
         optionCounter = 0;
-        
-        // Add initial option
-        addOptionInput();
-        addOptionInput();
+
+        // Try to read initial options embedded in the page
+        let initialOptions = [];
+        const initialOptionsScript = document.getElementById('initial-options');
+        if (initialOptionsScript) {
+            try {
+                initialOptions = JSON.parse(initialOptionsScript.textContent) || [];
+            } catch (e) {
+                initialOptions = [];
+            }
+        }
+
+        if (initialOptions.length > 0) {
+            initialOptions.forEach(opt => addOptionInput(opt));
+        } else {
+            // Fallback to two empty inputs
+            addOptionInput();
+            addOptionInput();
+        }
     }
     
     function addOptionInput(value = '') {
@@ -261,12 +278,34 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function initializeLikertScale() {
-        // Set default values
-        document.getElementById('{{ form.likert_min.id_for_label }}').value = 1;
-        document.getElementById('{{ form.likert_max.id_for_label }}').value = 5;
-        
-        // Generate default labels
+        const minInput = document.getElementById('{{ form.likert_min.id_for_label }}');
+        const maxInput = document.getElementById('{{ form.likert_max.id_for_label }}');
+
+        // If values are empty, set sensible defaults
+        if (!minInput.value) minInput.value = 1;
+        if (!maxInput.value) maxInput.value = 5;
+
+        // Generate labels for current range
         generateLikertLabels();
+
+        // If we have initial labels, apply them
+        const initialLabelsScript = document.getElementById('initial-likert-labels');
+        if (initialLabelsScript) {
+            try {
+                const initialLabels = JSON.parse(initialLabelsScript.textContent) || [];
+                if (initialLabels.length > 0) {
+                    const inputs = Array.from(document.querySelectorAll('.label-input'));
+                    inputs.forEach((input, idx) => {
+                        if (idx < initialLabels.length) {
+                            input.value = initialLabels[idx];
+                        }
+                    });
+                    updateLikertLabelsField();
+                }
+            } catch (e) {
+                // ignore
+            }
+        }
     }
     
     function generateLikertLabels() {
@@ -472,7 +511,8 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Event listeners
     questionTypeField.addEventListener('change', toggleFields);
-    addOptionBtn.addEventListener('click', addOptionInput);
+    // Prevent event object from becoming the option text
+    addOptionBtn.addEventListener('click', function() { addOptionInput(''); });
     likertTemplate.addEventListener('change', generateLikertLabels);
     
     // Add event listeners to min/max fields

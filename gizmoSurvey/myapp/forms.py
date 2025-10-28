@@ -81,6 +81,9 @@ class QuestionForm(forms.ModelForm):
             'order': forms.NumberInput(attrs={'class': 'form-control'}),
             'likert_min': forms.NumberInput(attrs={'class': 'form-control'}),
             'likert_max': forms.NumberInput(attrs={'class': 'form-control'}),
+            # Keep these hidden; UI handles inputs dynamically
+            'options': forms.HiddenInput(),
+            'likert_labels': forms.HiddenInput(),
         }
 
     def __init__(self, *args, **kwargs):
@@ -100,20 +103,11 @@ class QuestionForm(forms.ModelForm):
             elif isinstance(field.widget, forms.CheckboxInput):
                 field.widget.attrs.update({'class': 'form-check-input'})
         
-        # Make options field more user-friendly
+        # Replace JSON-backed fields with simple text fields to avoid JSON validation
         if 'options' in self.fields:
-            self.fields['options'].widget = forms.Textarea(attrs={
-                'class': 'form-control',
-                'rows': 3,
-                'placeholder': 'Enter options separated by new lines'
-            })
-        
+            self.fields['options'] = forms.CharField(required=False, widget=forms.HiddenInput())
         if 'likert_labels' in self.fields:
-            self.fields['likert_labels'].widget = forms.Textarea(attrs={
-                'class': 'form-control',
-                'rows': 3,
-                'placeholder': 'Enter labels separated by new lines (optional)'
-            })
+            self.fields['likert_labels'] = forms.CharField(required=False, widget=forms.HiddenInput())
 
     def clean_options(self):
         """Convert textarea input to list for multiple choice options"""
@@ -240,8 +234,10 @@ class SurveyResponseForm(forms.Form):
                     choices = [(i, question.likert_labels[i-question.likert_min] if i-question.likert_min < len(question.likert_labels) else str(i)) 
                               for i in range(question.likert_min, question.likert_max + 1)]
                 
-                self.fields[field_name] = forms.ChoiceField(
+                # Coerce to int so cleaned_data is an integer
+                self.fields[field_name] = forms.TypedChoiceField(
                     choices=choices,
+                    coerce=int,
                     widget=forms.RadioSelect(attrs={'class': 'form-check-input'}),
                     required=question.is_required,
                     label=question.question_text

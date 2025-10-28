@@ -227,8 +227,19 @@ def take_survey(request, survey_id):
                         question=question
                     )
                     
-                    if question.question_type in ['multiple_choice', 'likert_scale']:
+                    if question.question_type == 'multiple_choice':
                         answer.answer_choice = answer_value
+                    elif question.question_type == 'likert_scale':
+                        # store numeric selection in answer_number; also keep label in answer_choice if labels exist
+                        try:
+                            answer.answer_number = int(answer_value)
+                        except (TypeError, ValueError):
+                            answer.answer_number = None
+                        # If labels configured, set the human label for convenience
+                        if question.likert_labels and answer.answer_number is not None:
+                            index = answer.answer_number - question.likert_min
+                            if 0 <= index < len(question.likert_labels):
+                                answer.answer_choice = question.likert_labels[index]
                     elif question.question_type in ['short_answer', 'long_answer']:
                         answer.answer_text = answer_value
                     
@@ -847,8 +858,11 @@ def get_survey_analytics_data(survey):
                 value = answer.answer_choice
                 scale_counts[value] = scale_counts.get(value, 0) + 1
             
-            # Sort by scale value
-            sorted_scales = sorted(scale_counts.items(), key=lambda x: int(x[0]) if x[0].isdigit() else x[0])
+            # Sort by scale value with consistent key types to avoid str/int comparison
+            sorted_scales = sorted(
+                scale_counts.items(),
+                key=lambda x: (0, int(x[0])) if (isinstance(x[0], (int, float)) or (isinstance(x[0], str) and x[0].isdigit())) else (1, str(x[0]).lower())
+            )
             
             scale_stats = {}
             for value, count in sorted_scales:
@@ -985,8 +999,11 @@ def get_filtered_survey_analytics_data(survey, responses_query, question_type_fi
                 value = answer.answer_choice
                 scale_counts[value] = scale_counts.get(value, 0) + 1
             
-            # Sort by scale value
-            sorted_scales = sorted(scale_counts.items(), key=lambda x: int(x[0]) if x[0].isdigit() else x[0])
+            # Sort by scale value with consistent key types to avoid str/int comparison
+            sorted_scales = sorted(
+                scale_counts.items(),
+                key=lambda x: (0, int(x[0])) if (isinstance(x[0], (int, float)) or (isinstance(x[0], str) and x[0].isdigit())) else (1, str(x[0]).lower())
+            )
             
             scale_stats = {}
             for value, count in sorted_scales:
@@ -1230,7 +1247,8 @@ def student_response_details(request, response_id):
                 answer_data['answer_value'] = answer.answer_choice
                 answer_data['question_options'] = answer.question.options
             elif answer.question.question_type == 'likert_scale':
-                answer_data['answer_value'] = answer.answer_choice
+                # Prefer numeric value; fall back to choice label
+                answer_data['answer_value'] = answer.answer_number if answer.answer_number is not None else answer.answer_choice
                 answer_data['question_options'] = answer.question.likert_labels
                 answer_data['likert_min'] = answer.question.likert_min
                 answer_data['likert_max'] = answer.question.likert_max
@@ -1639,6 +1657,17 @@ def manage_students(request):
     # Get section filter options
     sections = Section.objects.filter(is_active=True).order_by('name')
     
+    # Apply search filter if provided
+    search_query = request.GET.get('search', '')
+    if search_query:
+        students = students.filter(
+            Q(user__first_name__icontains=search_query) |
+            Q(user__last_name__icontains=search_query) |
+            Q(user__username__icontains=search_query) |
+            Q(user__email__icontains=search_query) |
+            Q(student_id__icontains=search_query)
+        )
+    
     # Apply section filter if provided
     section_filter = request.GET.get('section')
     if section_filter and section_filter != 'all':
@@ -1677,6 +1706,7 @@ def manage_students(request):
         'sections': sections,
         'current_section_filter': section_filter,
         'current_status_filter': status_filter,
+        'search_query': search_query,
         'profile': profile,
         'total_students': total_students,
         'active_students': active_students,

@@ -103,6 +103,12 @@
                 </div>
                 <div class="card-body">
                     <form method="get" class="row g-3">
+                        <div class="col-md-4">
+                            <label for="search" class="form-label">Search Students</label>
+                            <input type="text" name="search" id="search" class="form-control" 
+                                   placeholder="Search by name, username, or student ID..." 
+                                   value="{{ search_query|default:'' }}">
+                        </div>
                         <div class="col-md-3">
                             <label for="section" class="form-label">Filter by Section</label>
                             <select name="section" id="section" class="form-select">
@@ -114,7 +120,7 @@
                                 {% endfor %}
                             </select>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                             <label for="status" class="form-label">Filter by Status</label>
                             <select name="status" id="status" class="form-select">
                                 <option value="all" {% if not current_status_filter or current_status_filter == 'all' %}selected{% endif %}>All Students</option>
@@ -357,6 +363,28 @@ document.addEventListener('DOMContentLoaded', function() {
     const allButton = document.querySelector('.btn-group .btn:first-child');
     if (allButton) {
         allButton.classList.add('active');
+    }
+    
+    const searchInput = document.getElementById('search');
+    if (searchInput) {
+        // Add input event listener for live search functionality
+        searchInput.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase().trim();
+            const rows = document.querySelectorAll('.student-row');
+            
+            rows.forEach(row => {
+                // Get all text content from the row
+                const rowText = row.textContent.toLowerCase();
+                
+                if (searchTerm === '' || rowText.includes(searchTerm)) {
+                    row.style.display = '';
+                    row.classList.remove('hide');
+                } else {
+                    row.style.display = 'none';
+                    row.classList.add('hide');
+                }
+            });
+        });
     }
 });
 </script>
