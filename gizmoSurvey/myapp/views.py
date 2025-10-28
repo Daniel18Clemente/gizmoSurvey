@@ -723,6 +723,35 @@ def view_response(request, response_id):
 
 
 @login_required
+def student_responses(request, student_id):
+    """Teacher view to list a specific student's responses (limited to teacher's surveys)"""
+    profile = UserProfile.objects.get(user=request.user)
+    if profile.role != 'teacher':
+        messages.error(request, 'Access denied. Teacher access required.')
+        return redirect('home')
+
+    # Get the student profile; show only responses to surveys created by the current teacher
+    student_profile = get_object_or_404(UserProfile, id=student_id, role='student')
+
+    # Limit responses to surveys owned by this teacher
+    responses = (
+        SurveyResponse.objects
+        .filter(student=student_profile.user, survey__created_by=request.user)
+        .order_by('-submitted_at')
+    )
+
+    # Add original question count for each response for quick overview
+    for response in responses:
+        response.original_question_count = response.answers.count()
+
+    context = {
+        'student_profile': student_profile,
+        'responses': responses,
+        'profile': profile,
+    }
+    return render(request, 'myapp/student_responses.html', context)
+
+@login_required
 def survey_analytics(request, survey_id):
     """Enhanced survey analytics and visualizations with real-time data"""
     profile = UserProfile.objects.get(user=request.user)

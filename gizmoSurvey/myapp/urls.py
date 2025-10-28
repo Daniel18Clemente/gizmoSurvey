@@ -35,6 +35,7 @@ urlpatterns = [
     path('teacher/survey/<int:survey_id>/export/responses/csv/', views.export_responses_csv, name='export_responses_csv'),
     path('teacher/sections/', views.manage_sections, name='manage_sections'),
     path('teacher/students/', views.manage_students, name='manage_students'),
+    path('teacher/student/<int:student_id>/responses/', views.student_responses, name='student_responses'),
     path('teacher/student/<int:student_id>/activate/', views.activate_student, name='activate_student'),
     path('teacher/student/<int:student_id>/deactivate/', views.deactivate_student, name='deactivate_student'),
     

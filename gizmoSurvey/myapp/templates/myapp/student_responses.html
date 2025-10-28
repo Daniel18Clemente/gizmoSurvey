@@ -1,0 +1,83 @@
+{% extends 'myapp/base.html' %}
+
+{% block title %}{{ student_profile.user.get_full_name|default:student_profile.user.username }} - Responses{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2 class="mb-1">
+                        <i class="bi bi-person"></i>
+                        {{ student_profile.user.get_full_name|default:student_profile.user.username }}
+                    </h2>
+                    <p class="text-muted mb-0">Survey responses submitted to your surveys</p>
+                </div>
+                <div class="d-flex gap-2">
+                    <a href="{% url 'manage_students' %}" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left"></i> Back to Students
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-list-ul"></i> Responses</h5>
+                </div>
+                <div class="card-body">
+                    {% if responses %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Survey</th>
+                                        <th>Version</th>
+                                        <th>Submitted</th>
+                                        <th>Questions Answered</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for response in responses %}
+                                    <tr>
+                                        <td>{{ response.survey.title }}</td>
+                                        <td>
+                                            <span class="badge bg-info">v{{ response.survey_version }}</span>
+                                        </td>
+                                        <td>
+                                            <div class="fw-semibold">{{ response.submitted_at|date:"M d, Y" }}</div>
+                                            <small class="text-muted">{{ response.submitted_at|time:"H:i" }}</small>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-primary">{{ response.original_question_count }}</span>
+                                        </td>
+                                        <td>
+                                            <a href="{% url 'view_response' response.id %}" class="btn btn-sm btn-outline-info">
+                                                <i class="bi bi-eye"></i> View
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="bi bi-inbox fs-1 text-muted mb-3"></i>
+                            <h5 class="text-muted">No responses found</h5>
+                            <p class="text-muted">This student has not submitted any responses to your surveys yet.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+

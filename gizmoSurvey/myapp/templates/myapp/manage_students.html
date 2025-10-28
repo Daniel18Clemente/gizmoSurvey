@@ -240,21 +240,9 @@
                                         </td>
                                         <td>
                                             <div class="btn-group btn-group-sm" role="group">
-                                                <button type="button" class="btn btn-outline-info" title="View Details">
-                                                    <i class="bi bi-eye"></i>
-                                                </button>
-                                                <button type="button" class="btn btn-outline-warning" title="Edit Student">
-                                                    <i class="bi bi-pencil"></i>
-                                                </button>
-                                                {% if stat.is_active %}
-                                                    <a href="{% url 'deactivate_student' stat.student.id %}" class="btn btn-outline-danger" title="Deactivate Student" onclick="return confirm('Are you sure you want to deactivate {{ stat.student.user.get_full_name|default:stat.student.user.username }}?')">
-                                                        <i class="bi bi-person-x"></i>
-                                                    </a>
-                                                {% else %}
-                                                    <a href="{% url 'activate_student' stat.student.id %}" class="btn btn-outline-success" title="Activate Student" onclick="return confirm('Are you sure you want to activate {{ stat.student.user.get_full_name|default:stat.student.user.username }}?')">
-                                                        <i class="bi bi-person-check"></i>
-                                                    </a>
-                                                {% endif %}
+                                                <a href="{% url 'student_responses' stat.student.id %}" class="btn btn-outline-info" title="View responses">
+                                                    <i class="bi bi-eye"></i> View responses
+                                                </a>
                                             </div>
                                         </td>
                                     </tr>
