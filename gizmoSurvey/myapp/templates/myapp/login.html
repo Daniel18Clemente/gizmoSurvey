@@ -42,6 +42,39 @@
         text-align: center;
         padding: 2rem 2rem 1rem;
         border-bottom: 1px solid var(--gray-200);
+        position: relative;
+    }
+
+    .go-back-btn {
+        position: absolute;
+        top: 1rem;
+        left: 1rem;
+        background: none;
+        border: 2px solid var(--gray-300);
+        color: var(--gray-600);
+        padding: 0.5rem;
+        border-radius: var(--border-radius);
+        font-size: 0.9rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 2.5rem;
+        height: 2.5rem;
+        text-decoration: none;
+    }
+
+    .go-back-btn:hover {
+        background: var(--gray-50);
+        border-color: var(--primary-color);
+        color: var(--primary-color);
+        transform: translateX(-2px);
+    }
+
+    .go-back-btn i {
+        font-size: 1rem;
     }
 
     .login-header h1 {
@@ -236,6 +269,15 @@
         .login-body {
             padding: 1.5rem;
         }
+
+        .go-back-btn {
+            top: 0.75rem;
+            left: 0.75rem;
+            width: 2.25rem;
+            height: 2.25rem;
+            padding: 0.4rem;
+            font-size: 0.85rem;
+        }
     }
 </style>
 {% endblock %}
@@ -250,6 +292,9 @@
     
     <div class="login-card">
         <div class="login-header">
+            <a href="{% url 'home' %}" class="go-back-btn" onclick="event.preventDefault(); history.back();" title="Go Back">
+                <i class="bi bi-arrow-left"></i>
+            </a>
             <h1>Welcome Back</h1>
             <p>Sign in to your account to continue</p>
         </div>

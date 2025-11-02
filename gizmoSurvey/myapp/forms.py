@@ -220,7 +220,9 @@ class SurveyResponseForm(forms.Form):
             field_name = f'question_{question.id}'
             
             if question.question_type == 'multiple_choice':
-                choices = [(opt, opt) for opt in question.options]
+                # Ensure options is a list and not None/empty
+                options = question.options if isinstance(question.options, list) and question.options else []
+                choices = [(opt, opt) for opt in options]
                 self.fields[field_name] = forms.ChoiceField(
                     choices=choices,
                     widget=forms.RadioSelect(attrs={'class': 'form-check-input'}),
@@ -230,8 +232,9 @@ class SurveyResponseForm(forms.Form):
             
             elif question.question_type == 'likert_scale':
                 choices = [(i, i) for i in range(question.likert_min, question.likert_max + 1)]
-                if question.likert_labels:
-                    choices = [(i, question.likert_labels[i-question.likert_min] if i-question.likert_min < len(question.likert_labels) else str(i)) 
+                # Ensure likert_labels is a list and not None/empty before using
+                if question.likert_labels and isinstance(question.likert_labels, list) and len(question.likert_labels) > 0:
+                    choices = [(i, question.likert_labels[i-question.likert_min] if (i-question.likert_min) < len(question.likert_labels) else str(i)) 
                               for i in range(question.likert_min, question.likert_max + 1)]
                 
                 # Coerce to int so cleaned_data is an integer

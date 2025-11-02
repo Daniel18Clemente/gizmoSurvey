@@ -734,6 +734,47 @@ def view_response(request, response_id):
 
 
 @login_required
+def view_student_profile(request, student_id):
+    """Teacher view to see a student's profile information"""
+    profile = UserProfile.objects.get(user=request.user)
+    if profile.role != 'teacher':
+        messages.error(request, 'Access denied. Teacher access required.')
+        return redirect('home')
+
+    # Get the student profile
+    student_profile = get_object_or_404(UserProfile, id=student_id, role='student')
+
+    # Get student statistics and responses
+    responses = SurveyResponse.objects.filter(
+        student=student_profile.user, 
+        survey__created_by=request.user
+    ).order_by('-submitted_at')
+    
+    total_responses = responses.count()
+    latest_response = responses.first()
+    
+    # Limit to recent 10 responses for the profile page
+    recent_responses = responses[:10]
+    
+    # Get surveys assigned to student's section that are created by this teacher
+    assigned_surveys = Survey.objects.filter(
+        sections=student_profile.section,
+        created_by=request.user,
+        is_active=True
+    ) if student_profile.section else Survey.objects.none()
+
+    context = {
+        'student_profile': student_profile,
+        'total_responses': total_responses,
+        'latest_response': latest_response,
+        'responses': recent_responses,
+        'assigned_surveys': assigned_surveys,
+        'profile': profile,
+    }
+    return render(request, 'myapp/student_profile.html', context)
+
+
+@login_required
 def student_responses(request, student_id):
     """Teacher view to list a specific student's responses (limited to teacher's surveys)"""
     profile = UserProfile.objects.get(user=request.user)
@@ -1245,11 +1286,13 @@ def student_response_details(request, response_id):
             
             if answer.question.question_type == 'multiple_choice':
                 answer_data['answer_value'] = answer.answer_choice
-                answer_data['question_options'] = answer.question.options
+                # Ensure options is a list (JSONField might be None)
+                answer_data['question_options'] = answer.question.options if isinstance(answer.question.options, list) else []
             elif answer.question.question_type == 'likert_scale':
                 # Prefer numeric value; fall back to choice label
                 answer_data['answer_value'] = answer.answer_number if answer.answer_number is not None else answer.answer_choice
-                answer_data['question_options'] = answer.question.likert_labels
+                # Ensure likert_labels is a list (JSONField might be None)
+                answer_data['question_options'] = answer.question.likert_labels if isinstance(answer.question.likert_labels, list) else []
                 answer_data['likert_min'] = answer.question.likert_min
                 answer_data['likert_max'] = answer.question.likert_max
             elif answer.question.question_type in ['short_answer', 'long_answer']:
@@ -1624,8 +1667,8 @@ def restore_section(request, section_id):
     
     section = get_object_or_404(Section, id=section_id, is_active=False)
     
-    # Get all students in this section
-    students_in_section = UserProfile.objects.filter(section=section, role='student', is_active=True)
+    # Get all students in this section that are currently deactivated
+    students_in_section = UserProfile.objects.filter(section=section, role='student', is_active=False)
     student_count = students_in_section.count()
     
     # Restore: mark section as active
@@ -1829,10 +1872,13 @@ def analytics_api(request, survey_id):
                 elif version_filter == 'latest':
                     # Get only the latest response per student
                     latest_responses = []
-                    for student in survey.sections.values_list('userprofile__user', flat=True):
-                        latest = responses_query.filter(student_id=student).order_by('-submitted_at').first()
-                        if latest:
-                            latest_responses.append(latest.id)
+                    # Get all students from assigned sections (filter for students only)
+                    for section in survey.sections.all():
+                        students = UserProfile.objects.filter(section=section, role='student', is_active=True).values_list('user', flat=True)
+                        for student_id in students:
+                            latest = responses_query.filter(student_id=student_id).order_by('-submitted_at').first()
+                            if latest:
+                                latest_responses.append(latest.id)
                     responses_query = responses_query.filter(id__in=latest_responses)
             
             # Get filtered analytics data

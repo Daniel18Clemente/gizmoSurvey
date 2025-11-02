@@ -246,6 +246,9 @@
                                         </td>
                                         <td>
                                             <div class="btn-group btn-group-sm" role="group">
+                                                <a href="{% url 'view_student_profile' stat.student.id %}" class="btn btn-outline-primary" title="View profile">
+                                                    <i class="bi bi-person-circle"></i> View profile
+                                                </a>
                                                 <a href="{% url 'student_responses' stat.student.id %}" class="btn btn-outline-info" title="View responses">
                                                     <i class="bi bi-eye"></i> View responses
                                                 </a>
