@@ -1,0 +1,288 @@
+{% extends 'myapp/base.html' %}
+{% load survey_extras %}
+
+{% block title %}Bulk Question Operations - {{ survey.title }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2 class="mb-1">
+                        <i class="bi bi-layers"></i> Bulk Question Operations
+                    </h2>
+                    <p class="text-muted mb-0">
+                        Manage multiple questions at once for: {{ survey.title }}
+                    </p>
+                </div>
+                <div class="d-flex gap-2">
+                    <a href="{% url 'edit_survey' survey.id %}" class="btn btn-outline-primary">
+                        <i class="bi bi-arrow-left"></i> Back to Survey
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Questions Selection -->
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="bi bi-question-circle"></i> Select Questions
+                    </h5>
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="selectAll()">
+                            <i class="bi bi-check-all"></i> Select All
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="selectNone()">
+                            <i class="bi bi-x"></i> Select None
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if active_questions %}
+                        <div class="questions-list" id="questionsList">
+                            {% for question in active_questions %}
+                                <div class="question-item mb-3 p-3 border rounded" data-question-id="{{ question.id }}">
+                                    <div class="form-check">
+                                        <input class="form-check-input question-checkbox" type="checkbox" 
+                                               value="{{ question.id }}" id="question_{{ question.id }}">
+                                        <label class="form-check-label w-100" for="question_{{ question.id }}">
+                                            <div class="d-flex justify-content-between align-items-start">
+                                                <div class="flex-grow-1">
+                                                    <div class="d-flex align-items-center mb-2">
+                                                        <span class="badge bg-secondary me-2">{{ question.order }}</span>
+                                                        <h6 class="mb-0">{{ question.question_text }}</h6>
+                                                        {% if question.is_required %}
+                                                            <span class="badge bg-danger ms-2">Required</span>
+                                                        {% endif %}
+                                                    </div>
+                                                    
+                                                    <div class="small text-muted mb-2">
+                                                        <span class="badge bg-info">{{ question.get_question_type_display }}</span>
+                                                        {% if question.question_type == 'multiple_choice' and question.options %}
+                                                            <span class="ms-2">{{ question.options|length }} options</span>
+                                                        {% elif question.question_type == 'likert_scale' %}
+                                                            <span class="ms-2">{{ question.likert_min }}-{{ question.likert_max }} scale</span>
+                                                        {% endif %}
+                                                    </div>
+                                                    
+                                                    {% if question.question_type == 'multiple_choice' and question.options %}
+                                                        <div class="small text-muted">
+                                                            <strong>Options:</strong>
+                                                            {% for option in question.options %}
+                                                                <span class="badge bg-light text-dark me-1">{{ option }}</span>
+                                                            {% endfor %}
+                                                        </div>
+                                                    {% endif %}
+                                                </div>
+                                                
+                                                <div class="btn-group" role="group">
+                                                    <a href="{% url 'edit_question' question.id %}" class="btn btn-outline-primary btn-sm">
+                                                        <i class="bi bi-pencil"></i>
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </label>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="bi bi-question-circle display-1 text-muted"></i>
+                            <h5 class="text-muted mt-3">No questions found</h5>
+                            <p class="text-muted">Add questions to your survey first.</p>
+                            <a href="{% url 'add_question' survey.id %}" class="btn btn-primary">
+                                <i class="bi bi-plus"></i> Add Questions
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Bulk Operations Form -->
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-gear"></i> Bulk Operations
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" id="bulkForm">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.action.id_for_label }}" class="form-label">Action</label>
+                            {{ form.action }}
+                            {% if form.action.errors %}
+                                <div class="text-danger small">{{ form.action.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3" id="newOrderField" style="display: none;">
+                            <label for="{{ form.new_order.id_for_label }}" class="form-label">New Order</label>
+                            {{ form.new_order }}
+                            <div class="form-text">Enter new order numbers separated by commas (e.g., 1,3,2,4)</div>
+                            {% if form.new_order.errors %}
+                                <div class="text-danger small">{{ form.new_order.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3" id="newTypeField" style="display: none;">
+                            <label for="{{ form.new_type.id_for_label }}" class="form-label">New Question Type</label>
+                            {{ form.new_type }}
+                            {% if form.new_type.errors %}
+                                <div class="text-danger small">{{ form.new_type.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        {{ form.question_ids }}
+
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary" id="submitBtn" disabled>
+                                <i class="bi bi-check"></i> Execute Action
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Selected Questions Summary -->
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-list-check"></i> Selected Questions
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div id="selectedSummary">
+                        <p class="text-muted mb-0">No questions selected</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.question-item {
+    transition: all 0.2s ease-in-out;
+}
+.question-item:hover {
+    background-color: #f8f9fa;
+}
+.question-checkbox:checked + label .question-item {
+    background-color: #e3f2fd;
+    border-color: #2196f3;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const actionSelect = document.getElementById('{{ form.action.id_for_label }}');
+    const newOrderField = document.getElementById('newOrderField');
+    const newTypeField = document.getElementById('newTypeField');
+    const questionIdsField = document.getElementById('{{ form.question_ids.id_for_label }}');
+    const submitBtn = document.getElementById('submitBtn');
+    const selectedSummary = document.getElementById('selectedSummary');
+    
+    // Handle action selection
+    actionSelect.addEventListener('change', function() {
+        const action = this.value;
+        
+        // Hide all conditional fields
+        newOrderField.style.display = 'none';
+        newTypeField.style.display = 'none';
+        
+        // Show relevant field based on action
+        if (action === 'reorder') {
+            newOrderField.style.display = 'block';
+        } else if (action === 'change_type') {
+            newTypeField.style.display = 'block';
+        }
+        
+        updateSubmitButton();
+    });
+    
+    // Handle question selection
+    const checkboxes = document.querySelectorAll('.question-checkbox');
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', updateSelectedQuestions);
+    });
+    
+    function updateSelectedQuestions() {
+        const selectedIds = Array.from(document.querySelectorAll('.question-checkbox:checked'))
+            .map(cb => cb.value);
+        
+        questionIdsField.value = selectedIds.join(',');
+        
+        // Update summary
+        if (selectedIds.length > 0) {
+            selectedSummary.innerHTML = `
+                <div class="d-flex justify-content-between align-items-center">
+                    <span><strong>${selectedIds.length}</strong> questions selected</span>
+                    <span class="badge bg-primary">${selectedIds.length}</span>
+                </div>
+            `;
+        } else {
+            selectedSummary.innerHTML = '<p class="text-muted mb-0">No questions selected</p>';
+        }
+        
+        updateSubmitButton();
+    }
+    
+    function updateSubmitButton() {
+        const hasSelection = questionIdsField.value.length > 0;
+        const hasAction = actionSelect.value !== '';
+        
+        submitBtn.disabled = !(hasSelection && hasAction);
+        
+        if (hasSelection && hasAction) {
+            submitBtn.classList.remove('btn-primary');
+            submitBtn.classList.add('btn-danger');
+            submitBtn.innerHTML = '<i class="bi bi-exclamation-triangle"></i> Execute Action';
+        } else {
+            submitBtn.classList.remove('btn-danger');
+            submitBtn.classList.add('btn-primary');
+            submitBtn.innerHTML = '<i class="bi bi-check"></i> Execute Action';
+        }
+    }
+    
+    // Form submission confirmation
+    document.getElementById('bulkForm').addEventListener('submit', function(e) {
+        const action = actionSelect.value;
+        const selectedCount = questionIdsField.value.split(',').length;
+        
+        let message = `Are you sure you want to ${action.replace('_', ' ')} ${selectedCount} question(s)?`;
+        
+        if (action === 'delete') {
+            message = `⚠️ WARNING: This will permanently delete ${selectedCount} question(s). This action cannot be undone!`;
+        }
+        
+        if (!confirm(message)) {
+            e.preventDefault();
+        }
+    });
+});
+
+function selectAll() {
+    document.querySelectorAll('.question-checkbox').forEach(cb => {
+        cb.checked = true;
+        cb.dispatchEvent(new Event('change'));
+    });
+}
+
+function selectNone() {
+    document.querySelectorAll('.question-checkbox').forEach(cb => {
+        cb.checked = false;
+        cb.dispatchEvent(new Event('change'));
+    });
+}
+</script>
+{% endblock %}

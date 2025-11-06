@@ -1,0 +1,260 @@
+{% extends 'myapp/base.html' %}
+{% load static %}
+
+{% block title %}{{ student_profile.user.get_full_name|default:student_profile.user.username }} - Profile{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div class="d-flex align-items-center">
+                    <img src="{% static 'myapp/images/logo_survey.png' %}" alt="Gizmo Survey Logo" class="me-3" style="height: 50px; width: auto;">
+                    <div>
+                        <h2 class="mb-1">
+                            <i class="bi bi-person-circle"></i>
+                            {{ student_profile.user.get_full_name|default:student_profile.user.username }}
+                        </h2>
+                        <p class="text-muted mb-0">Student Profile Information</p>
+                    </div>
+                </div>
+                <div class="d-flex gap-2">
+                    <a href="{% url 'student_responses' student_profile.id %}" class="btn btn-outline-info">
+                        <i class="bi bi-list-ul"></i> View Responses
+                    </a>
+                    <a href="{% url 'manage_students' %}" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left"></i> Back to Students
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Student Information Card -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-info-circle"></i> Student Information
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label text-muted small">Full Name</label>
+                                <div class="fw-semibold fs-5">
+                                    <div class="avatar-lg bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center me-3" style="width: 48px; height: 48px; font-size: 18px; vertical-align: middle;">
+                                        {{ student_profile.user.first_name|first|upper }}{{ student_profile.user.last_name|first|upper }}
+                                    </div>
+                                    {{ student_profile.user.get_full_name|default:student_profile.user.username }}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label text-muted small">Username</label>
+                                <div class="fw-semibold">
+                                    <code>{{ student_profile.user.username }}</code>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label text-muted small">Email Address</label>
+                                <div class="fw-semibold">
+                                    {{ student_profile.user.email|default:"Not provided" }}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label text-muted small">Student ID</label>
+                                <div class="fw-semibold">
+                                    {% if student_profile.student_id %}
+                                        <span class="badge bg-info fs-6">{{ student_profile.student_id }}</span>
+                                    {% else %}
+                                        <span class="text-muted">Not set</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label text-muted small">Section</label>
+                                <div class="fw-semibold">
+                                    {% if student_profile.section %}
+                                        <div>
+                                            <div>{{ student_profile.section.name }}</div>
+                                            <small class="text-muted">{{ student_profile.section.code }}</small>
+                                        </div>
+                                    {% else %}
+                                        <span class="text-muted">No section assigned</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label text-muted small">Account Status</label>
+                                <div>
+                                    {% if student_profile.is_active %}
+                                        <span class="badge bg-success fs-6">
+                                            <i class="bi bi-check-circle"></i> Active
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-secondary fs-6">
+                                            <i class="bi bi-x-circle"></i> Inactive
+                                        </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-bar-chart"></i> Statistics
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-muted">Total Responses</span>
+                            <span class="badge bg-primary fs-6">{{ total_responses }}</span>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-muted">Surveys Responded</span>
+                            <span class="badge bg-info fs-6">{{ surveys_responded }}</span>
+                        </div>
+                    </div>
+                    {% if latest_response %}
+                    <div class="mb-3">
+                        <div>
+                            <span class="text-muted small">Latest Response</span>
+                            <div class="fw-semibold mt-1">
+                                {{ latest_response.submitted_at|date:"M d, Y" }}
+                            </div>
+                            <small class="text-muted">{{ latest_response.submitted_at|time:"H:i" }}</small>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% if assigned_surveys %}
+                    <div>
+                        <div>
+                            <span class="text-muted small">Assigned Surveys</span>
+                            <div class="fw-semibold mt-1">
+                                <span class="badge bg-secondary fs-6">{{ assigned_surveys.count }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Responses -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="bi bi-clock-history"></i> Recent Responses
+                    </h5>
+                    {% if total_responses > 10 %}
+                    <a href="{% url 'student_responses' student_profile.id %}" class="btn btn-sm btn-outline-primary">
+                        View All ({{ total_responses }})
+                    </a>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    {% if responses %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Survey</th>
+                                        <th>Version</th>
+                                        <th>Submitted</th>
+                                        <th>Questions Answered</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for response in responses %}
+                                    <tr>
+                                        <td>{{ response.survey.title }}</td>
+                                        <td>
+                                            <span class="badge bg-info">v{{ response.survey_version }}</span>
+                                        </td>
+                                        <td>
+                                            <div class="fw-semibold">{{ response.submitted_at|date:"M d, Y" }}</div>
+                                            <small class="text-muted">{{ response.submitted_at|time:"H:i" }}</small>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-primary">{{ response.answers.count }}</span>
+                                        </td>
+                                        <td>
+                                            <a href="{% url 'view_response' response.id %}" class="btn btn-sm btn-outline-info">
+                                                <i class="bi bi-eye"></i> View
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="bi bi-inbox fs-1 text-muted mb-3"></i>
+                            <h5 class="text-muted">No responses found</h5>
+                            <p class="text-muted">This student has not submitted any responses to your surveys yet.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .avatar-lg {
+        width: 48px;
+        height: 48px;
+        font-size: 18px;
+        font-weight: 600;
+    }
+    
+    .card {
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        border: 1px solid rgba(0, 0, 0, 0.125);
+    }
+    
+    .card-header {
+        background-color: #f8f9fa;
+        border-bottom: 1px solid #dee2e6;
+    }
+    
+    .form-label {
+        font-weight: 500;
+        margin-bottom: 0.25rem;
+    }
+</style>
+{% endblock %}
+
+
+

@@ -1,0 +1,186 @@
+{% extends 'myapp/base.html' %}
+{% load survey_extras %}
+
+{% block title %}Student Dashboard - Gizmo Survey{% endblock %}
+{% block page_title %}Student Dashboard{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <p class="text-muted mb-0">
+                    Welcome back, {{ user.get_full_name|default:user.username }}!
+                </p>
+            </div>
+            <div class="text-end">
+                <span class="badge bg-primary fs-6">{{ profile.section.name|default:"No Section" }}</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title">Assigned Surveys</h6>
+                            <h3 class="mb-0">{{ assigned_surveys.count }}</h3>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="bi bi-clipboard-data fs-1 opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title">Completed</h6>
+                            <h3 class="mb-0">{{ completed_surveys|length }}</h3>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="bi bi-check-circle fs-1 opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title">Need Retake</h6>
+                            <h3 class="mb-0">{{ surveys_to_retake|length }}</h3>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="bi bi-arrow-clockwise fs-1 opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title">Pending</h6>
+                            <h3 class="mb-0">{{ pending_count }}</h3>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="bi bi-clock fs-1 opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Assigned Surveys -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="bi bi-list-check"></i> Assigned Surveys
+                    </h5>
+                    <a href="{% url 'student_history' %}" class="btn btn-outline-primary btn-sm">
+                        <i class="bi bi-clock-history"></i> View History
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if assigned_surveys %}
+                        <div class="row">
+                            {% for survey in assigned_surveys %}
+                                <div class="col-md-6 col-lg-4 mb-3">
+                                    <div class="card survey-card h-100">
+                                        <div class="card-body">
+                                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                                <h6 class="card-title mb-0">{{ survey.title }}</h6>
+                                                {% if survey.id in completed_surveys %}
+                                                    <span class="badge bg-success status-badge">
+                                                        <i class="bi bi-check-circle"></i> Completed
+                                                    </span>
+                                                {% elif survey.id in surveys_to_retake %}
+                                                    <span class="badge bg-warning status-badge">
+                                                        <i class="bi bi-arrow-clockwise"></i> Needs Retake
+                                                    </span>
+                                                {% elif survey.is_open %}
+                                                    <span class="badge bg-primary status-badge">
+                                                        <i class="bi bi-play-circle"></i> Open
+                                                    </span>
+                                                {% else %}
+                                                    <span class="badge bg-secondary status-badge">
+                                                        <i class="bi bi-pause-circle"></i> Closed
+                                                    </span>
+                                                {% endif %}
+                                            </div>
+                                            
+                                            {% if survey.description %}
+                                                <p class="card-text text-muted small mb-2">
+                                                    {{ survey.description|truncatewords:15 }}
+                                                </p>
+                                            {% endif %}
+                                            
+                                            <div class="small text-muted mb-3">
+                                                <div class="d-flex justify-content-between">
+                                                    <span>
+                                                        <i class="bi bi-calendar"></i> 
+                                                        {{ survey.created_at|date:"M d, Y" }}
+                                                    </span>
+                                                    {% if survey.due_date %}
+                                                        <span>
+                                                            <i class="bi bi-clock"></i> 
+                                                            Due: {{ survey.due_date|date:"M d, Y" }}
+                                                        </span>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <small class="text-muted">
+                                                    {{ survey|active_questions_count }} question{{ survey|active_questions_count|pluralize }}
+                                                </small>
+                                                {% if survey.id in completed_surveys %}
+                                                    <button class="btn btn-outline-success btn-sm" disabled>
+                                                        <i class="bi bi-check"></i> Completed
+                                                    </button>
+                                                {% elif survey.id in surveys_to_retake %}
+                                                    <a href="{% url 'take_survey' survey.id %}" class="btn btn-warning btn-sm">
+                                                        <i class="bi bi-arrow-clockwise"></i> Retake Survey
+                                                    </a>
+                                                {% elif survey.is_open %}
+                                                    <a href="{% url 'take_survey' survey.id %}" class="btn btn-primary btn-sm">
+                                                        <i class="bi bi-play"></i> Take Survey
+                                                    </a>
+                                                {% else %}
+                                                    <button class="btn btn-outline-secondary btn-sm" disabled>
+                                                        <i class="bi bi-pause"></i> Closed
+                                                    </button>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="bi bi-clipboard-x display-1 text-muted"></i>
+                            <h5 class="text-muted mt-3">No surveys assigned</h5>
+                            <p class="text-muted">You don't have any surveys assigned to your section yet.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

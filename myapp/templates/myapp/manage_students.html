@@ -1,0 +1,394 @@
+{% extends 'myapp/base.html' %}
+{% load static %}
+
+{% block title %}Manage Students - Survey Management System{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div class="d-flex align-items-center">
+                    <img src="{% static 'myapp/images/logo_survey.png' %}" alt="Gizmo Survey Logo" class="me-3" style="height: 50px; width: auto;">
+                    <div>
+                        <h2 class="mb-1">
+                            <i class="bi bi-person-lines-fill"></i> Manage Students
+                        </h2>
+                        <p class="text-muted mb-0">
+                            View and manage student accounts and their survey activity
+                        </p>
+                    </div>
+                </div>
+                <div class="d-flex gap-2">
+                    <a href="{% url 'teacher_dashboard' %}" class="btn btn-outline-primary">
+                        <i class="bi bi-arrow-left"></i> Back to Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title">Total Students</h6>
+                            <h3 class="mb-0">{{ total_students }}</h3>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="bi bi-people fs-1 opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title">Active Students</h6>
+                            <h3 class="mb-0">{{ active_students }}</h3>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="bi bi-person-check fs-1 opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-secondary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title">Inactive Students</h6>
+                            <h3 class="mb-0">{{ inactive_students }}</h3>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="bi bi-person-x fs-1 opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title">Currently Showing</h6>
+                            <h3 class="mb-0">{{ filtered_students }}</h3>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="bi bi-funnel fs-1 opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Controls -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-funnel"></i> Filter Students
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="get" class="row g-3">
+                        <div class="col-md-4">
+                            <label for="search" class="form-label">Search Students</label>
+                            <input type="text" name="search" id="search" class="form-control" 
+                                   placeholder="Search by name, username, or student ID..." 
+                                   value="{{ search_query|default:'' }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="section" class="form-label">Filter by Section</label>
+                            <select name="section" id="section" class="form-select">
+                                <option value="all" {% if not current_section_filter or current_section_filter == 'all' %}selected{% endif %}>All Sections</option>
+                                {% for section in sections %}
+                                    <option value="{{ section.id }}" {% if current_section_filter == section.id|stringformat:"s" %}selected{% endif %}>
+                                        {{ section.name }} ({{ section.code }})
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label for="status" class="form-label">Filter by Status</label>
+                            <select name="status" id="status" class="form-select">
+                                <option value="all" {% if not current_status_filter or current_status_filter == 'all' %}selected{% endif %}>All Students</option>
+                                <option value="active" {% if current_status_filter == 'active' %}selected{% endif %}>Active Only</option>
+                                <option value="inactive" {% if current_status_filter == 'inactive' %}selected{% endif %}>Inactive Only</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary me-2">
+                                <i class="bi bi-search"></i> Apply Filter
+                            </button>
+                            <a href="{% url 'manage_students' %}" class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-clockwise"></i> Clear
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Students List -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="bi bi-list-ul"></i> Students List
+                        {% if current_section_filter and current_section_filter != 'all' %}
+                            <small class="text-muted">(Filtered by Section)</small>
+                        {% endif %}
+                    </h5>
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="filterStudents('all')">All</button>
+                        <button type="button" class="btn btn-outline-success btn-sm" onclick="filterStudents('active')">Active</button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="filterStudents('inactive')">Inactive</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if student_stats %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Student Name</th>
+                                        <th>Username</th>
+                                        <th>Student ID</th>
+                                        <th>Section</th>
+                                        <th>Status</th>
+                                        <th>Survey Responses</th>
+                                        <th>Latest Response</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for stat in student_stats %}
+                                    <tr class="student-row" data-status="{% if stat.is_active %}active{% else %}inactive{% endif %}">
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="avatar-sm bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-2">
+                                                    {{ stat.student.user.first_name|first|upper }}{{ stat.student.user.last_name|first|upper }}
+                                                </div>
+                                                <div>
+                                                    <div class="fw-semibold">{{ stat.student.user.get_full_name|default:stat.student.user.username }}</div>
+                                                    <small class="text-muted">{{ stat.student.user.email }}</small>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <code>{{ stat.student.user.username }}</code>
+                                        </td>
+                                        <td>
+                                            {% if stat.student.student_id %}
+                                                <span class="badge bg-info">{{ stat.student.student_id }}</span>
+                                            {% else %}
+                                                <span class="text-muted">Not set</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if stat.student.section %}
+                                                <div>
+                                                    <div class="fw-semibold">{{ stat.student.section.name }}</div>
+                                                    <small class="text-muted">{{ stat.student.section.code }}</small>
+                                                </div>
+                                            {% else %}
+                                                <span class="text-muted">No section assigned</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if stat.is_active %}
+                                                <span class="badge bg-success">
+                                                    <i class="bi bi-check-circle"></i> Active
+                                                </span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">
+                                                    <i class="bi bi-x-circle"></i> Inactive
+                                                </span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <span class="badge bg-primary me-2">{{ stat.response_count }}</span>
+                                                {% if stat.response_count > 0 %}
+                                                    <small class="text-success">
+                                                        <i class="bi bi-check-circle"></i>
+                                                    </small>
+                                                {% else %}
+                                                    <small class="text-muted">
+                                                        <i class="bi bi-dash-circle"></i>
+                                                    </small>
+                                                {% endif %}
+                                            </div>
+                                        </td>
+                                        <td>
+                                            {% if stat.latest_response %}
+                                                <div>
+                                                    <div class="fw-semibold">{{ stat.latest_response|date:"M d, Y" }}</div>
+                                                    <small class="text-muted">{{ stat.latest_response|time:"H:i" }}</small>
+                                                </div>
+                                            {% else %}
+                                                <span class="text-muted">No responses</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm" role="group">
+                                                <a href="{% url 'view_student_profile' stat.student.id %}" class="btn btn-outline-primary" title="View profile">
+                                                    <i class="bi bi-person-circle"></i> View profile
+                                                </a>
+                                                <a href="{% url 'student_responses' stat.student.id %}" class="btn btn-outline-info" title="View responses">
+                                                    <i class="bi bi-eye"></i> View responses
+                                                </a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="bi bi-person-x fs-1 text-muted mb-3"></i>
+                            <h5 class="text-muted">No students found</h5>
+                            <p class="text-muted">
+                                {% if current_section_filter and current_section_filter != 'all' %}
+                                    No students found in the selected section.
+                                {% else %}
+                                    No students have been registered yet.
+                                {% endif %}
+                            </p>
+                            <a href="{% url 'register' %}" class="btn btn-primary">
+                                <i class="bi bi-person-plus"></i> Register Students
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .avatar-sm {
+        width: 32px;
+        height: 32px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+    
+    .student-row {
+        transition: all 0.3s ease;
+    }
+    
+    .student-row:hover {
+        background-color: rgba(0, 123, 255, 0.05);
+        transform: translateY(-1px);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+    
+    .student-row.hide {
+        display: none;
+    }
+    
+    .btn-group-sm .btn {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+    }
+    
+    .table th {
+        border-top: none;
+        font-weight: 600;
+        color: #495057;
+        background-color: #f8f9fa;
+    }
+    
+    .card-header {
+        background-color: #f8f9fa;
+        border-bottom: 1px solid #dee2e6;
+    }
+    
+    .badge {
+        font-size: 0.75em;
+    }
+    
+    code {
+        background-color: #f8f9fa;
+        padding: 0.2rem 0.4rem;
+        border-radius: 0.25rem;
+        font-size: 0.875em;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function filterStudents(status) {
+    const rows = document.querySelectorAll('.student-row');
+    const buttons = document.querySelectorAll('.btn-group .btn');
+    
+    // Update button states
+    buttons.forEach(btn => {
+        btn.classList.remove('active');
+    });
+    event.target.classList.add('active');
+    
+    // Filter rows
+    rows.forEach(row => {
+        const shouldShow = status === 'all' || row.dataset.status === status;
+        
+        if (shouldShow) {
+            row.style.display = '';
+            row.classList.remove('hide');
+        } else {
+            row.style.display = 'none';
+            row.classList.add('hide');
+        }
+    });
+}
+
+// Initialize with 'all' filter active
+document.addEventListener('DOMContentLoaded', function() {
+    const allButton = document.querySelector('.btn-group .btn:first-child');
+    if (allButton) {
+        allButton.classList.add('active');
+    }
+    
+    const searchInput = document.getElementById('search');
+    if (searchInput) {
+        // Add input event listener for live search functionality
+        searchInput.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase().trim();
+            const rows = document.querySelectorAll('.student-row');
+            
+            rows.forEach(row => {
+                // Get all text content from the row
+                const rowText = row.textContent.toLowerCase();
+                
+                if (searchTerm === '' || rowText.includes(searchTerm)) {
+                    row.style.display = '';
+                    row.classList.remove('hide');
+                } else {
+                    row.style.display = 'none';
+                    row.classList.add('hide');
+                }
+            });
+        });
+    }
+});
+</script>
+{% endblock %}

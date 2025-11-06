@@ -1,0 +1,78 @@
+erDiagram
+    User {
+        int id PK
+        string username
+        string email
+        string first_name
+        string last_name
+        datetime date_joined
+        boolean is_active
+    }
+    
+    Section {
+        int id PK
+        string name
+        string code UK
+        text description
+        datetime created_at
+    }
+    
+    UserProfile {
+        int id PK
+        int user_id FK
+        string role
+        int section_id FK
+        string student_id
+    }
+    
+    Survey {
+        int id PK
+        string title
+        text description
+        int created_by_id FK
+        boolean is_active
+        datetime created_at
+        datetime updated_at
+        datetime due_date
+    }
+    
+    Question {
+        int id PK
+        int survey_id FK
+        text question_text
+        string question_type
+        boolean is_required
+        int order
+        json options
+        int likert_min
+        int likert_max
+        json likert_labels
+    }
+    
+    SurveyResponse {
+        int id PK
+        int survey_id FK
+        int student_id FK
+        datetime submitted_at
+        boolean is_complete
+    }
+    
+    Answer {
+        int id PK
+        int response_id FK
+        int question_id FK
+        text answer_text
+        int answer_number
+        string answer_choice
+    }
+
+    %% Relationships
+    User ||--o| UserProfile : "has profile"
+    Section ||--o{ UserProfile : "contains users"
+    User ||--o{ Survey : "creates"
+    User ||--o{ SurveyResponse : "submits"
+    Survey ||--o{ Question : "contains"
+    Survey ||--o{ SurveyResponse : "receives"
+    SurveyResponse ||--o{ Answer : "contains"
+    Question ||--o{ Answer : "answered by"
+    Survey }o--o{ Section : "assigned to"

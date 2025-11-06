@@ -1,0 +1,137 @@
+{% extends 'myapp/base.html' %}
+
+{% block title %}{{ response.student.get_full_name }} - Response Details{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2 class="mb-1">
+                        <i class="bi bi-eye"></i> Response Details
+                    </h2>
+                    <p class="text-muted mb-0">
+                        {{ response.student.get_full_name|default:response.student.username }} - {{ response.survey.title }}
+                        <span class="badge bg-{% if response.survey_version == response.survey.version %}success{% else %}warning{% endif %} ms-2">
+                            Version {{ response.survey_version }}
+                            {% if response.survey_version != response.survey.version %}
+                                (Outdated)
+                            {% endif %}
+                        </span>
+                    </p>
+                </div>
+                <a href="{% url 'survey_responses' response.survey.id %}" class="btn btn-outline-primary">
+                    <i class="bi bi-arrow-left"></i> Back to Responses
+                </a>
+            </div>
+
+            <!-- Student Information -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-person"></i> Student Information
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p class="mb-2">
+                                <strong>Name:</strong> {{ response.student.get_full_name|default:"Not provided" }}
+                            </p>
+                            <p class="mb-2">
+                                <strong>Username:</strong> {{ response.student.username }}
+                            </p>
+                            <p class="mb-2">
+                                <strong>Email:</strong> {{ response.student.email }}
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <p class="mb-2">
+                                <strong>Section:</strong> 
+                                <span class="badge bg-info">{{ response.student.userprofile.section.name|default:"No Section" }}</span>
+                            </p>
+                            <p class="mb-2">
+                                <strong>Student ID:</strong> {{ response.student.userprofile.student_id|default:"Not provided" }}
+                            </p>
+                            <p class="mb-2">
+                                <strong>Submitted:</strong> {{ response.submitted_at|date:"M d, Y g:i A" }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Answers -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-question-circle"></i> Survey Answers
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if answers %}
+                        {% for answer in answers %}
+                            <div class="question-response mb-4 p-3 border rounded">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <h6 class="mb-0">Question {{ forloop.counter }}</h6>
+                                    <span class="badge bg-info">{{ answer.question.get_question_type_display }}</span>
+                                </div>
+                                
+                                <p class="fw-bold mb-2">{{ answer.question.question_text }}</p>
+                                
+                                {% if answer.question.question_type == 'multiple_choice' %}
+                                    <div class="answer-display">
+                                        <span class="badge bg-primary fs-6">{{ answer.answer_choice }}</span>
+                                    </div>
+                                {% elif answer.question.question_type == 'likert_scale' %}
+                                    <div class="answer-display">
+                                        <span class="badge bg-success fs-6">{{ answer.answer_number }}</span>
+                                        {% if answer.question.likert_labels and answer.answer_number %}
+                                            {% with answer.answer_number|add:"-1" as index %}
+                                                {% if answer.question.likert_labels|length > index %}
+                                                    <small class="text-muted ms-2">({{ answer.question.likert_labels|slice:index|last }})</small>
+                                                {% endif %}
+                                            {% endwith %}
+                                        {% endif %}
+                                    </div>
+                                {% elif answer.question.question_type in 'short_answer,long_answer' %}
+                                    <div class="answer-display">
+                                        <div class="bg-light p-3 rounded">
+                                            {{ answer.answer_text|linebreaks }}
+                                        </div>
+                                    </div>
+                                {% endif %}
+                                
+                                {% if answer.question.is_required %}
+                                    <small class="text-danger">
+                                        <i class="bi bi-exclamation-circle"></i> Required question
+                                    </small>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="bi bi-question-circle display-1 text-muted"></i>
+                            <h5 class="text-muted mt-3">No answers provided</h5>
+                            <p class="text-muted">This student hasn't answered any questions yet.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.question-response {
+    transition: all 0.2s ease-in-out;
+}
+.question-response:hover {
+    background-color: #f8f9fa;
+}
+.answer-display {
+    margin-top: 0.5rem;
+}
+</style>
+{% endblock %}

@@ -1,0 +1,122 @@
+{% extends 'myapp/base.html' %}
+
+{% block title %}{{ survey.title }} - Take Survey{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <!-- Survey Header -->
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h4 class="mb-0">
+                            <i class="bi bi-clipboard-data"></i> {{ survey.title }}
+                        </h4>
+                        <a href="{% url 'student_dashboard' %}" class="btn btn-outline-light btn-sm">
+                            <i class="bi bi-arrow-left"></i> Back to Dashboard
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if survey.description %}
+                        <p class="card-text">{{ survey.description }}</p>
+                    {% endif %}
+                    
+                    <div class="row text-muted small">
+                        <div class="col-md-6">
+                            <i class="bi bi-calendar"></i> Created: {{ survey.created_at|date:"M d, Y" }}
+                        </div>
+                        {% if survey.due_date %}
+                            <div class="col-md-6">
+                                <i class="bi bi-clock"></i> Due: {{ survey.due_date|date:"M d, Y g:i A" }}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Survey Form -->
+            <form method="post" id="surveyForm">
+                {% csrf_token %}
+                
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="bi bi-question-circle"></i> Questions
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        {% for field in form %}
+                            <div class="question-item mb-4">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <label class="form-label fw-bold mb-0">{{ field.label }}</label>
+                                    {% if field.field.required %}
+                                        <span class="badge bg-danger">Required</span>
+                                    {% endif %}
+                                </div>
+                                
+                                {% if field.field.widget.input_type == 'radio' %}
+                                    <div class="form-check-group">
+                                        {% for choice in field %}
+                                            <div class="form-check mb-2">
+                                                {{ choice.tag }}
+                                                <label class="form-check-label" for="{{ choice.id_for_label }}">
+                                                    {{ choice.choice_label }}
+                                                </label>
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+                                {% else %}
+                                    {{ field }}
+                                {% endif %}
+                                
+                                {% if field.errors %}
+                                    <div class="text-danger small mt-1">{{ field.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+
+                <!-- Submit Button -->
+                <div class="text-center mt-4">
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="bi bi-send"></i> Submit Survey
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('surveyForm');
+    
+    // Form validation
+    form.addEventListener('submit', function(e) {
+        const requiredFields = document.querySelectorAll('input[required], textarea[required]');
+        let allRequiredFilled = true;
+        
+        requiredFields.forEach(function(field) {
+            if (field.type === 'radio') {
+                const radioGroup = document.querySelectorAll(`input[name="${field.name}"]`);
+                const isChecked = Array.from(radioGroup).some(radio => radio.checked);
+                if (!isChecked) {
+                    allRequiredFilled = false;
+                }
+            } else if (!field.value.trim()) {
+                allRequiredFilled = false;
+            }
+        });
+        
+        if (!allRequiredFilled) {
+            e.preventDefault();
+            alert('Please answer all required questions before submitting.');
+        }
+    });
+});
+</script>
+{% endblock %}
