@@ -316,7 +316,7 @@
                     <label for="password">Password</label>
                     <i class="bi bi-lock input-icon"></i>
                     <button type="button" class="password-toggle" id="togglePassword">
-                        <i class="bi bi-eye" id="toggleIcon"></i>
+                        <i class="bi bi-eye-slash" id="toggleIcon"></i>
                     </button>
                 </div>
 
@@ -348,12 +348,12 @@ document.addEventListener('DOMContentLoaded', function() {
     togglePassword.addEventListener('click', function() {
         if (passwordField.type === 'password') {
             passwordField.type = 'text';
-            toggleIcon.classList.remove('bi-eye');
-            toggleIcon.classList.add('bi-eye-slash');
-        } else {
-            passwordField.type = 'password';
             toggleIcon.classList.remove('bi-eye-slash');
             toggleIcon.classList.add('bi-eye');
+        } else {
+            passwordField.type = 'password';
+            toggleIcon.classList.remove('bi-eye');
+            toggleIcon.classList.add('bi-eye-slash');
         }
     });
 

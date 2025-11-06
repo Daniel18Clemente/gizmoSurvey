@@ -165,21 +165,15 @@
                                         <textarea class="form-control" id="questionText" rows="2" required></textarea>
                                     </div>
                                     
-                                    <div class="row">
-                                        <div class="col-md-6 mb-3">
-                                            <label for="questionType" class="form-label">Question Type</label>
-                                            <select class="form-select" id="questionType" required>
-                                                <option value="">Select type...</option>
-                                                <option value="multiple_choice">Multiple Choice</option>
-                                                <option value="likert_scale">Likert Scale</option>
-                                                <option value="short_answer">Short Answer</option>
-                                                <option value="long_answer">Long Answer</option>
-                                            </select>
-                                        </div>
-                                        <div class="col-md-6 mb-3">
-                                            <label for="questionOrder" class="form-label">Order</label>
-                                            <input type="number" class="form-control" id="questionOrder" min="1" value="1">
-                                        </div>
+                                    <div class="mb-3">
+                                        <label for="questionType" class="form-label">Question Type</label>
+                                        <select class="form-select" id="questionType" required>
+                                            <option value="">Select type...</option>
+                                            <option value="multiple_choice">Multiple Choice</option>
+                                            <option value="likert_scale">Likert Scale</option>
+                                            <option value="short_answer">Short Answer</option>
+                                            <option value="long_answer">Long Answer</option>
+                                        </select>
                                     </div>
                                     
                                     <div class="mb-3">
@@ -480,7 +474,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // Form elements
     const questionText = document.getElementById('questionText');
     const questionType = document.getElementById('questionType');
-    const questionOrder = document.getElementById('questionOrder');
     const isRequired = document.getElementById('isRequired');
     const multipleChoiceOptions = document.getElementById('multipleChoiceOptions');
     const likertSettings = document.getElementById('likertSettings');
@@ -523,7 +516,8 @@ document.addEventListener('DOMContentLoaded', function() {
         questionType.addEventListener('change', toggleQuestionTypeFields);
     }
     if (addOptionBtn) {
-        addOptionBtn.addEventListener('click', addOptionInput);
+        // Prevent event object from becoming the option text
+        addOptionBtn.addEventListener('click', function() { addOptionInput(''); });
     }
     if (likertTemplate) {
         likertTemplate.addEventListener('change', generateLikertLabels);
@@ -557,15 +551,8 @@ document.addEventListener('DOMContentLoaded', function() {
     
     function resetQuestionForm() {
         inlineQuestionForm.reset();
-        questionOrder.value = getNextOrderNumber();
         multipleChoiceOptions.style.display = 'none';
         likertSettings.style.display = 'none';
-    }
-    
-    function getNextOrderNumber() {
-        const existingQuestions = document.querySelectorAll('.draggable-question');
-        const tempQuestions = temporaryQuestions.length;
-        return existingQuestions.length + tempQuestions + 1;
     }
     
     function toggleQuestionTypeFields() {
@@ -735,13 +722,16 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
+        // Prepend question: shift all existing temporary questions' order up by 1, then set new question order to 0
+        temporaryQuestions.forEach(q => q.order += 1);
+        
         // Create question object
         const question = {
             id: 'temp_' + (++questionCounter),
             question_text: questionText.value.trim(),
             question_type: questionType.value,
             is_required: isRequired.checked,
-            order: parseInt(questionOrder.value),
+            order: 0,  // Prepend: always set to 0
             options: [],
             likert_min: 1,
             likert_max: 5,

@@ -73,12 +73,11 @@ class QuestionForm(forms.ModelForm):
     """Form for creating and editing questions"""
     class Meta:
         model = Question
-        fields = ['question_text', 'question_type', 'is_required', 'order', 'options', 'likert_min', 'likert_max', 'likert_labels']
+        fields = ['question_text', 'question_type', 'is_required', 'options', 'likert_min', 'likert_max', 'likert_labels']
         widgets = {
             'question_text': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
             'question_type': forms.Select(attrs={'class': 'form-select'}),
             'is_required': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
-            'order': forms.NumberInput(attrs={'class': 'form-control'}),
             'likert_min': forms.NumberInput(attrs={'class': 'form-control'}),
             'likert_max': forms.NumberInput(attrs={'class': 'form-control'}),
             # Keep these hidden; UI handles inputs dynamically

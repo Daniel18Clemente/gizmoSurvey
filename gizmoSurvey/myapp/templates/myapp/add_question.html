@@ -38,21 +38,12 @@
                             {% endif %}
                         </div>
 
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="{{ form.question_type.id_for_label }}" class="form-label">Question Type</label>
-                                {{ form.question_type }}
-                                {% if form.question_type.errors %}
-                                    <div class="text-danger small">{{ form.question_type.errors.0 }}</div>
-                                {% endif %}
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="{{ form.order.id_for_label }}" class="form-label">Order</label>
-                                {{ form.order }}
-                                {% if form.order.errors %}
-                                    <div class="text-danger small">{{ form.order.errors.0 }}</div>
-                                {% endif %}
-                            </div>
+                        <div class="mb-3">
+                            <label for="{{ form.question_type.id_for_label }}" class="form-label">Question Type</label>
+                            {{ form.question_type }}
+                            {% if form.question_type.errors %}
+                                <div class="text-danger small">{{ form.question_type.errors.0 }}</div>
+                            {% endif %}
                         </div>
 
                         <div class="mb-3">
@@ -472,7 +463,8 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Event listeners
     questionTypeField.addEventListener('change', toggleFields);
-    addOptionBtn.addEventListener('click', addOptionInput);
+    // Prevent event object from becoming the option text
+    addOptionBtn.addEventListener('click', function() { addOptionInput(''); });
     likertTemplate.addEventListener('change', generateLikertLabels);
     
     // Add event listeners to min/max fields

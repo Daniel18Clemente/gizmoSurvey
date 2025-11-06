@@ -4,7 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import JsonResponse, HttpResponse
 from django.core.paginator import Paginator
-from django.db.models import Q, Count
+from django.db.models import Q, Count, F
 from django.db import models
 from django.utils import timezone
 from .models import UserProfile, Survey, Question, SurveyResponse, Answer, Section
@@ -503,6 +503,12 @@ def add_question(request, survey_id):
         if form.is_valid():
             question = form.save(commit=False)
             question.survey = survey
+            # Prepend question: shift all existing questions' order up by 1, then set new question order to 0
+            existing_questions = survey.questions.filter(is_active=True)
+            if existing_questions.exists():
+                # Shift all existing questions' order up by 1
+                existing_questions.update(order=F('order') + 1)
+            question.order = 0
             question.save()
             
             # Increment survey version if it has responses
@@ -531,14 +537,22 @@ def handle_batch_save(request, survey, questions_data):
         created_questions = []
         version_incremented = False
         
-        for question_data in questions_data:
+        # Prepend questions: shift all existing questions' order up by the number of new questions
+        num_new_questions = len(questions_data)
+        existing_questions = survey.questions.filter(is_active=True)
+        if existing_questions.exists():
+            # Shift all existing questions' order up by the number of new questions
+            existing_questions.update(order=F('order') + num_new_questions)
+        
+        # Add new questions starting from order 0 (prepending)
+        for index, question_data in enumerate(questions_data):
             # Create question object
             question = Question(
                 survey=survey,
                 question_text=question_data.get('question_text', ''),
                 question_type=question_data.get('question_type', 'short_answer'),
                 is_required=question_data.get('is_required', True),
-                order=question_data.get('order', 1),
+                order=index,  # Prepend: first question gets order 0, second gets order 1, etc.
                 options=question_data.get('options', []),
                 likert_min=question_data.get('likert_min', 1),
                 likert_max=question_data.get('likert_max', 5),
