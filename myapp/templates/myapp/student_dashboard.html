@@ -109,7 +109,7 @@
                                                     <span class="badge bg-success status-badge">
                                                         <i class="bi bi-check-circle"></i> Completed
                                                     </span>
-                                                {% elif survey.id in surveys_to_retake %}
+                                                {% elif survey.id in surveys_to_retake and survey.is_open %}
                                                     <span class="badge bg-warning status-badge">
                                                         <i class="bi bi-arrow-clockwise"></i> Needs Retake
                                                     </span>
@@ -153,7 +153,7 @@
                                                     <button class="btn btn-outline-success btn-sm" disabled>
                                                         <i class="bi bi-check"></i> Completed
                                                     </button>
-                                                {% elif survey.id in surveys_to_retake %}
+                                                {% elif survey.id in surveys_to_retake and survey.is_open %}
                                                     <a href="{% url 'take_survey' survey.id %}" class="btn btn-warning btn-sm">
                                                         <i class="bi bi-arrow-clockwise"></i> Retake Survey
                                                     </a>
