@@ -12,7 +12,7 @@ from .forms import UserRegistrationForm, SurveyForm, QuestionForm, SurveyRespons
 import json
 import csv
 import io
-from datetime import datetime
+from datetime import datetime, timedelta
 
 
 def home(request):
@@ -327,6 +327,11 @@ def survey_list(request):
         # Get assigned sections
         assigned_sections = survey.sections.filter(is_active=True)
         
+        # Check if survey is expired (is_active=True but due_date has passed)
+        is_expired = False
+        if survey.is_active and survey.due_date and timezone.now() > survey.due_date:
+            is_expired = True
+        
         survey_data.append({
             'survey': survey,
             'total_responses': total_responses,
@@ -334,10 +339,11 @@ def survey_list(request):
             'outdated_version_responses': outdated_version_responses,
             'assigned_sections': assigned_sections,
             'question_count': survey.questions.filter(is_active=True).count(),
+            'is_expired': is_expired,
         })
     
     # Pagination
-    paginator = Paginator(survey_data, 10)
+    paginator = Paginator(survey_data, 5)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     
@@ -460,6 +466,8 @@ def edit_survey(request, survey_id):
                 messages.success(request, 'Survey updated successfully!')
             
             form.save()
+            # Refresh survey from database to ensure we have the latest values
+            survey.refresh_from_db()
             return redirect('edit_survey', survey_id=survey.id)
     else:
         form = SurveyForm(instance=survey)
@@ -672,17 +680,24 @@ def restore_question(request, question_id):
 
 @login_required
 def survey_responses(request, survey_id):
-    """View survey responses grouped by version"""
+    """View survey responses with filtering and pagination"""
     profile = UserProfile.objects.get(user=request.user)
     if profile.role != 'teacher':
         messages.error(request, 'Access denied. Teacher access required.')
         return redirect('home')
     
     survey = get_object_or_404(Survey, id=survey_id, created_by=request.user)
-    responses = SurveyResponse.objects.filter(survey=survey).order_by('-submitted_at')
+    responses = SurveyResponse.objects.filter(survey=survey).select_related('student', 'student__userprofile__section').order_by('-submitted_at')
     
-    # Search functionality
+    # Get filter parameters
     search_query = request.GET.get('search', '')
+    section_filter = request.GET.get('section', '')
+    status_filter = request.GET.get('status', '')
+    version_filter = request.GET.get('version', '')
+    date_from = request.GET.get('date_from', '')
+    date_to = request.GET.get('date_to', '')
+    
+    # Apply search filter
     if search_query:
         responses = responses.filter(
             Q(student__first_name__icontains=search_query) |
@@ -690,9 +705,52 @@ def survey_responses(request, survey_id):
             Q(student__username__icontains=search_query)
         )
     
-    # Group responses by version
+    # Apply section filter
+    if section_filter:
+        responses = responses.filter(student__userprofile__section_id=section_filter)
+    
+    # Apply status filter
+    if status_filter:
+        if status_filter == 'complete':
+            responses = responses.filter(is_complete=True)
+        elif status_filter == 'incomplete':
+            responses = responses.filter(is_complete=False)
+    
+    # Apply version filter
+    if version_filter:
+        responses = responses.filter(survey_version=version_filter)
+    
+    # Apply date range filters
+    if date_from:
+        try:
+            date_from_obj = datetime.strptime(date_from, '%Y-%m-%d')
+            responses = responses.filter(submitted_at__gte=date_from_obj)
+        except ValueError:
+            pass
+    
+    if date_to:
+        try:
+            date_to_obj = datetime.strptime(date_to, '%Y-%m-%d')
+            # Add one day to include the entire end date
+            date_to_obj = date_to_obj + timedelta(days=1)
+            responses = responses.filter(submitted_at__lt=date_to_obj)
+        except ValueError:
+            pass
+    
+    # Get all sections for filter dropdown
+    sections = Section.objects.filter(is_active=True).order_by('name')
+    
+    # Get all versions for filter dropdown
+    all_versions = SurveyResponse.objects.filter(survey=survey).values_list('survey_version', flat=True).distinct().order_by('-survey_version')
+    
+    # Pagination
+    paginator = Paginator(responses, 5)  # Show 5 responses per page
+    page_number = request.GET.get('page', 1)
+    page_obj = paginator.get_page(page_number)
+    
+    # Group paginated responses by version
     responses_by_version = {}
-    for response in responses:
+    for response in page_obj:
         version = response.survey_version
         if version not in responses_by_version:
             responses_by_version[version] = []
@@ -706,15 +764,13 @@ def survey_responses(request, survey_id):
         for response in version_responses:
             response.original_question_count = response.answers.count()
     
-    # Calculate version counts
-    current_version_count = 0
+    # Calculate version counts (for all responses, not just current page)
+    all_responses = SurveyResponse.objects.filter(survey=survey)
+    current_version_count = all_responses.filter(survey_version=survey.version).count()
     outdated_version_counts = {}
-    
-    for version, version_responses in responses_by_version.items():
-        if version == survey.version:
-            current_version_count = len(version_responses)
-        else:
-            outdated_version_counts[version] = len(version_responses)
+    for version in all_versions:
+        if version != survey.version:
+            outdated_version_counts[version] = all_responses.filter(survey_version=version).count()
     
     context = {
         'survey': survey,
@@ -723,6 +779,14 @@ def survey_responses(request, survey_id):
         'current_version_count': current_version_count,
         'outdated_version_counts': outdated_version_counts,
         'search_query': search_query,
+        'section_filter': section_filter,
+        'status_filter': status_filter,
+        'version_filter': version_filter,
+        'date_from': date_from,
+        'date_to': date_to,
+        'sections': sections,
+        'all_versions': all_versions,
+        'page_obj': page_obj,
         'profile': profile,
     }
     return render(request, 'myapp/survey_responses.html', context)
@@ -1456,6 +1520,8 @@ def survey_settings_management(request, survey_id):
                 messages.success(request, 'Survey settings updated successfully!')
             
             form.save()
+            # Refresh survey from database to ensure we have the latest values
+            survey.refresh_from_db()
             return redirect('survey_settings_management', survey_id=survey.id)
     else:
         form = SurveySettingsForm(instance=survey)
@@ -1737,9 +1803,14 @@ def manage_students(request):
     elif status_filter == 'inactive':
         students = students.filter(is_active=False)
     
-    # Get student statistics
+    # Pagination
+    paginator = Paginator(students, 5)  # Show 5 students per page
+    page_number = request.GET.get('page', 1)
+    page_obj = paginator.get_page(page_number)
+    
+    # Get student statistics for paginated students
     student_stats = []
-    for student in students:
+    for student in page_obj:
         # Count survey responses for this student
         response_count = SurveyResponse.objects.filter(student=student.user).count()
         
@@ -1753,7 +1824,7 @@ def manage_students(request):
             'is_active': student.is_active,  # Use UserProfile.is_active instead of user.is_active
         })
     
-    # Calculate statistics
+    # Calculate statistics (for all students, not just current page)
     total_students = UserProfile.objects.filter(role='student').count()
     active_students = UserProfile.objects.filter(role='student', is_active=True).count()
     inactive_students = UserProfile.objects.filter(role='student', is_active=False).count()
@@ -1769,6 +1840,7 @@ def manage_students(request):
         'active_students': active_students,
         'inactive_students': inactive_students,
         'filtered_students': students.count(),
+        'page_obj': page_obj,
     }
     return render(request, 'myapp/manage_students.html', context)
 

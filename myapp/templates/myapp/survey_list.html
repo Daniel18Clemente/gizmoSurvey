@@ -192,6 +192,11 @@
         color: #991b1b;
     }
 
+    .status-expired {
+        background: #fef3c7;
+        color: #92400e;
+    }
+
     .filters-section {
         background: var(--bg-primary);
         border: 1px solid var(--border-light);
@@ -303,9 +308,9 @@
                                     <p class="survey-description">{{ survey_data.survey.description|truncatewords:20 }}</p>
                                 {% endif %}
                             </div>
-                            <span class="status-badge {% if survey_data.survey.is_active %}status-active{% else %}status-inactive{% endif %}">
+                            <span class="status-badge {% if survey_data.is_expired %}status-expired{% elif survey_data.survey.is_active %}status-active{% else %}status-inactive{% endif %}">
                                 <i class="fas fa-circle"></i>
-                                {% if survey_data.survey.is_active %}Active{% else %}Inactive{% endif %}
+                                {% if survey_data.is_expired %}Expired{% elif survey_data.survey.is_active %}Active{% else %}Inactive{% endif %}
                             </span>
                         </div>
                         

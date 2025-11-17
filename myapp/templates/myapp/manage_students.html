@@ -149,6 +149,11 @@
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">
                         <i class="bi bi-list-ul"></i> Students List
+                        {% if page_obj %}
+                            <span class="badge bg-secondary ms-2">
+                                Showing {{ page_obj.start_index }}-{{ page_obj.end_index }} of {{ page_obj.paginator.count }}
+                            </span>
+                        {% endif %}
                         {% if current_section_filter and current_section_filter != 'all' %}
                             <small class="text-muted">(Filtered by Section)</small>
                         {% endif %}
@@ -274,6 +279,59 @@
                                 <i class="bi bi-person-plus"></i> Register Students
                             </a>
                         </div>
+                    {% endif %}
+                    
+                    <!-- Pagination -->
+                    {% if page_obj.has_other_pages %}
+                        <nav aria-label="Page navigation" class="mt-4">
+                            <ul class="pagination justify-content-center">
+                                {% if page_obj.has_previous %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?{% if search_query %}search={{ search_query }}&{% endif %}{% if current_section_filter and current_section_filter != 'all' %}section={{ current_section_filter }}&{% endif %}{% if current_status_filter and current_status_filter != 'all' %}status={{ current_status_filter }}&{% endif %}page=1">
+                                            <i class="bi bi-chevron-double-left"></i> First
+                                        </a>
+                                    </li>
+                                    <li class="page-item">
+                                        <a class="page-link" href="?{% if search_query %}search={{ search_query }}&{% endif %}{% if current_section_filter and current_section_filter != 'all' %}section={{ current_section_filter }}&{% endif %}{% if current_status_filter and current_status_filter != 'all' %}status={{ current_status_filter }}&{% endif %}page={{ page_obj.previous_page_number }}">
+                                            <i class="bi bi-chevron-left"></i> Previous
+                                        </a>
+                                    </li>
+                                {% else %}
+                                    <li class="page-item disabled">
+                                        <span class="page-link"><i class="bi bi-chevron-double-left"></i> First</span>
+                                    </li>
+                                    <li class="page-item disabled">
+                                        <span class="page-link"><i class="bi bi-chevron-left"></i> Previous</span>
+                                    </li>
+                                {% endif %}
+                                
+                                <li class="page-item active">
+                                    <span class="page-link">
+                                        Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                                    </span>
+                                </li>
+                                
+                                {% if page_obj.has_next %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?{% if search_query %}search={{ search_query }}&{% endif %}{% if current_section_filter and current_section_filter != 'all' %}section={{ current_section_filter }}&{% endif %}{% if current_status_filter and current_status_filter != 'all' %}status={{ current_status_filter }}&{% endif %}page={{ page_obj.next_page_number }}">
+                                            Next <i class="bi bi-chevron-right"></i>
+                                        </a>
+                                    </li>
+                                    <li class="page-item">
+                                        <a class="page-link" href="?{% if search_query %}search={{ search_query }}&{% endif %}{% if current_section_filter and current_section_filter != 'all' %}section={{ current_section_filter }}&{% endif %}{% if current_status_filter and current_status_filter != 'all' %}status={{ current_status_filter }}&{% endif %}page={{ page_obj.paginator.num_pages }}">
+                                            Last <i class="bi bi-chevron-double-right"></i>
+                                        </a>
+                                    </li>
+                                {% else %}
+                                    <li class="page-item disabled">
+                                        <span class="page-link">Next <i class="bi bi-chevron-right"></i></span>
+                                    </li>
+                                    <li class="page-item disabled">
+                                        <span class="page-link">Last <i class="bi bi-chevron-double-right"></i></span>
+                                    </li>
+                                {% endif %}
+                            </ul>
+                        </nav>
                     {% endif %}
                 </div>
             </div>
