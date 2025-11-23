@@ -51,10 +51,10 @@
         top: 1rem;
         left: 1rem;
         background: none;
-        border: 2px solid var(--gray-300);
-        color: var(--gray-600);
+        border: 2px solid var(--border-medium);
+        color: var(--text-secondary);
         padding: 0.5rem;
-        border-radius: var(--border-radius);
+        border-radius: var(--radius-md);
         font-size: 0.9rem;
         font-weight: 500;
         cursor: pointer;
@@ -68,7 +68,7 @@
     }
 
     .go-back-btn:hover {
-        background: var(--gray-50);
+        background: var(--bg-secondary);
         border-color: var(--primary-color);
         color: var(--primary-color);
         transform: translateX(-2px);
@@ -223,6 +223,181 @@
         font-weight: 500;
     }
 
+    /* Progress Indicator Styles */
+    .progress-indicator {
+        background: var(--bg-secondary);
+        border-radius: var(--radius-md);
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        border: 2px solid var(--border-light);
+    }
+
+    .progress-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+
+    .progress-label {
+        font-weight: 600;
+        color: var(--text-primary);
+        font-size: 0.95rem;
+    }
+
+    .progress-percentage {
+        font-weight: 700;
+        color: var(--primary-color);
+        font-size: 1.1rem;
+    }
+
+    .progress-bar-container {
+        width: 100%;
+        height: 8px;
+        background: var(--bg-tertiary);
+        border-radius: 10px;
+        overflow: hidden;
+        margin-bottom: 1rem;
+    }
+
+    .progress-bar {
+        height: 100%;
+        background: linear-gradient(90deg, var(--primary-color), var(--primary-light));
+        border-radius: 10px;
+        transition: width 0.3s ease;
+        width: 0%;
+    }
+
+    .progress-steps {
+        display: flex;
+        justify-content: space-between;
+        gap: 0.5rem;
+    }
+
+    .progress-steps .step {
+        flex: 1;
+        text-align: center;
+        padding: 0.5rem;
+        font-size: 0.8rem;
+        color: var(--text-muted);
+        border-radius: var(--radius-sm);
+        transition: all 0.3s ease;
+    }
+
+    .progress-steps .step.active {
+        background: var(--primary-color);
+        color: white;
+        font-weight: 600;
+    }
+
+    .progress-steps .step.completed {
+        background: var(--success-color);
+        color: white;
+    }
+
+    /* Validation Feedback Styles */
+    .form-floating {
+        position: relative;
+    }
+
+    .validation-icon {
+        position: absolute;
+        right: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 1.2rem;
+        pointer-events: none;
+        transition: opacity 0.3s ease;
+        z-index: 10;
+    }
+
+    .form-select.valid,
+    .form-select.invalid {
+        padding-right: 3rem;
+    }
+
+    .form-floating:has(.form-select) .validation-icon {
+        top: 1.5rem;
+    }
+
+    .validation-icon.valid {
+        color: var(--success-color);
+    }
+
+    .validation-icon.invalid {
+        color: var(--danger-color);
+    }
+
+    .form-control.valid {
+        border-color: var(--success-color);
+        padding-right: 3rem;
+    }
+
+    .form-control.invalid {
+        border-color: var(--danger-color);
+        padding-right: 3rem;
+    }
+
+    .form-control:focus.valid {
+        box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.1);
+    }
+
+    .form-control:focus.invalid {
+        box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+    }
+
+    .password-strength {
+        margin-top: 0.5rem;
+        font-size: 0.8rem;
+    }
+
+    .password-strength-bar {
+        height: 4px;
+        background: var(--bg-tertiary);
+        border-radius: 2px;
+        margin-top: 0.25rem;
+        overflow: hidden;
+    }
+
+    .password-strength-fill {
+        height: 100%;
+        transition: all 0.3s ease;
+        border-radius: 2px;
+    }
+
+    .password-strength.weak .password-strength-fill {
+        width: 33%;
+        background: var(--danger-color);
+    }
+
+    .password-strength.medium .password-strength-fill {
+        width: 66%;
+        background: #f59e0b;
+    }
+
+    .password-strength.strong .password-strength-fill {
+        width: 100%;
+        background: var(--success-color);
+    }
+
+    .password-match {
+        margin-top: 0.5rem;
+        font-size: 0.8rem;
+        display: none;
+    }
+
+    .password-match.show {
+        display: block;
+    }
+
+    .password-match.match {
+        color: var(--success-color);
+    }
+
+    .password-match.mismatch {
+        color: var(--danger-color);
+    }
+
     .floating-shapes {
         position: absolute;
         width: 100%;
@@ -313,7 +488,23 @@
         </div>
         
         <div class="register-body">
-            <form method="post" novalidate>
+            <!-- Progress Indicator -->
+            <div class="progress-indicator">
+                <div class="progress-header">
+                    <span class="progress-label">Form Progress</span>
+                    <span class="progress-percentage" id="progressPercentage">0%</span>
+                </div>
+                <div class="progress-bar-container">
+                    <div class="progress-bar" id="progressBar"></div>
+                </div>
+                <div class="progress-steps">
+                    <span class="step" id="step1">Personal Info</span>
+                    <span class="step" id="step2">Account Details</span>
+                    <span class="step" id="step3">Security</span>
+                </div>
+            </div>
+
+            <form method="post" novalidate id="registrationForm">
                 {% csrf_token %}
                 
                 <div class="field-group">
@@ -321,6 +512,7 @@
                         <input type="text" class="form-control" id="{{ form.first_name.id_for_label }}" 
                                name="{{ form.first_name.name }}" placeholder="First Name" required>
                         <label for="{{ form.first_name.id_for_label }}">First Name</label>
+                        <span class="validation-icon" id="first_name_icon"></span>
                         {% if form.first_name.errors %}
                             <div class="error-message">{{ form.first_name.errors.0 }}</div>
                         {% endif %}
@@ -329,6 +521,7 @@
                         <input type="text" class="form-control" id="{{ form.last_name.id_for_label }}" 
                                name="{{ form.last_name.name }}" placeholder="Last Name" required>
                         <label for="{{ form.last_name.id_for_label }}">Last Name</label>
+                        <span class="validation-icon" id="last_name_icon"></span>
                         {% if form.last_name.errors %}
                             <div class="error-message">{{ form.last_name.errors.0 }}</div>
                         {% endif %}
@@ -339,18 +532,22 @@
                     <input type="text" class="form-control" id="{{ form.username.id_for_label }}" 
                            name="{{ form.username.name }}" placeholder="Username" required>
                     <label for="{{ form.username.id_for_label }}">Username</label>
+                    <span class="validation-icon" id="username_icon"></span>
                     {% if form.username.errors %}
                         <div class="error-message">{{ form.username.errors.0 }}</div>
                     {% endif %}
+                    <div class="error-message" id="username_error" style="display: none;"></div>
                 </div>
 
                 <div class="form-floating">
                     <input type="email" class="form-control" id="{{ form.email.id_for_label }}" 
                            name="{{ form.email.name }}" placeholder="Email" required>
                     <label for="{{ form.email.id_for_label }}">Email</label>
+                    <span class="validation-icon" id="email_icon"></span>
                     {% if form.email.errors %}
                         <div class="error-message">{{ form.email.errors.0 }}</div>
                     {% endif %}
+                    <div class="error-message" id="email_error" style="display: none;"></div>
                 </div>
 
                 <div class="form-floating">
@@ -360,6 +557,7 @@
                         {% endfor %}
                     </select>
                     <label for="{{ form.section.id_for_label }}">Section</label>
+                    <span class="validation-icon" id="section_icon"></span>
                     {% if form.section.errors %}
                         <div class="error-message">{{ form.section.errors.0 }}</div>
                     {% endif %}
@@ -369,6 +567,7 @@
                     <input type="text" class="form-control" id="{{ form.student_id.id_for_label }}" 
                            name="{{ form.student_id.name }}" placeholder="Student ID" required>
                     <label for="{{ form.student_id.id_for_label }}">Student ID</label>
+                    <span class="validation-icon" id="student_id_icon"></span>
                     {% if form.student_id.errors %}
                         <div class="error-message">{{ form.student_id.errors.0 }}</div>
                     {% endif %}
@@ -379,17 +578,28 @@
                         <input type="password" class="form-control" id="{{ form.password1.id_for_label }}" 
                                name="{{ form.password1.name }}" placeholder="Password" required>
                         <label for="{{ form.password1.id_for_label }}">Password</label>
+                        <span class="validation-icon" id="password1_icon"></span>
                         {% if form.password1.errors %}
                             <div class="error-message">{{ form.password1.errors.0 }}</div>
                         {% endif %}
+                        <div class="password-strength" id="password_strength" style="display: none;">
+                            <span id="strength_text">Password strength: </span>
+                            <div class="password-strength-bar">
+                                <div class="password-strength-fill"></div>
+                            </div>
+                        </div>
                     </div>
                     <div class="form-floating">
                         <input type="password" class="form-control" id="{{ form.password2.id_for_label }}" 
                                name="{{ form.password2.name }}" placeholder="Confirm Password" required>
                         <label for="{{ form.password2.id_for_label }}">Confirm Password</label>
+                        <span class="validation-icon" id="password2_icon"></span>
                         {% if form.password2.errors %}
                             <div class="error-message">{{ form.password2.errors.0 }}</div>
                         {% endif %}
+                        <div class="password-match" id="password_match">
+                            <span id="match_text"></span>
+                        </div>
                     </div>
                 </div>
 
@@ -412,7 +622,299 @@
 </div>
 
 <script>
-// Registration form is now simplified for students only
-// No role selection needed - all accounts are student accounts
+// Form validation and progress tracking
+(function() {
+    const form = document.getElementById('registrationForm');
+    const progressBar = document.getElementById('progressBar');
+    const progressPercentage = document.getElementById('progressPercentage');
+    
+    // Define all form fields
+    const fields = {
+        first_name: document.getElementById('{{ form.first_name.id_for_label }}'),
+        last_name: document.getElementById('{{ form.last_name.id_for_label }}'),
+        username: document.getElementById('{{ form.username.id_for_label }}'),
+        email: document.getElementById('{{ form.email.id_for_label }}'),
+        section: document.getElementById('{{ form.section.id_for_label }}'),
+        student_id: document.getElementById('{{ form.student_id.id_for_label }}'),
+        password1: document.getElementById('{{ form.password1.id_for_label }}'),
+        password2: document.getElementById('{{ form.password2.id_for_label }}')
+    };
+
+    // Validation functions
+    function validateFirstName(value) {
+        return value.trim().length >= 2 && /^[a-zA-Z\s'-]+$/.test(value);
+    }
+
+    function validateLastName(value) {
+        return value.trim().length >= 2 && /^[a-zA-Z\s'-]+$/.test(value);
+    }
+
+    function validateUsername(value) {
+        return value.trim().length >= 3 && /^[a-zA-Z0-9_]+$/.test(value);
+    }
+
+    function validateEmail(value) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return emailRegex.test(value);
+    }
+
+    function validateSection(value) {
+        return value && value !== '';
+    }
+
+    function validateStudentId(value) {
+        return value.trim().length >= 3;
+    }
+
+    function validatePassword(value) {
+        return value.length >= 8;
+    }
+
+    function checkPasswordStrength(password) {
+        let strength = 0;
+        if (password.length >= 8) strength++;
+        if (password.length >= 12) strength++;
+        if (/[a-z]/.test(password) && /[A-Z]/.test(password)) strength++;
+        if (/\d/.test(password)) strength++;
+        if (/[^a-zA-Z\d]/.test(password)) strength++;
+        
+        if (strength <= 2) return 'weak';
+        if (strength <= 3) return 'medium';
+        return 'strong';
+    }
+
+    function updateFieldValidation(fieldId, isValid, iconId, errorId = null) {
+        const field = fields[fieldId];
+        const icon = document.getElementById(iconId);
+        
+        if (!field || !icon) return;
+        
+        if (field.value.trim() === '') {
+            field.classList.remove('valid', 'invalid');
+            icon.textContent = '';
+            icon.className = 'validation-icon';
+            if (errorId) {
+                const errorEl = document.getElementById(errorId);
+                if (errorEl) errorEl.style.display = 'none';
+            }
+            return;
+        }
+        
+        if (isValid) {
+            field.classList.remove('invalid');
+            field.classList.add('valid');
+            icon.textContent = '✓';
+            icon.className = 'validation-icon valid';
+            if (errorId) {
+                const errorEl = document.getElementById(errorId);
+                if (errorEl) errorEl.style.display = 'none';
+            }
+        } else {
+            field.classList.remove('valid');
+            field.classList.add('invalid');
+            icon.textContent = '✗';
+            icon.className = 'validation-icon invalid';
+        }
+    }
+
+    function updatePasswordStrength() {
+        const password = fields.password1.value;
+        const strengthDiv = document.getElementById('password_strength');
+        const strengthText = document.getElementById('strength_text');
+        
+        if (password.length === 0) {
+            strengthDiv.style.display = 'none';
+            return;
+        }
+        
+        strengthDiv.style.display = 'block';
+        const strength = checkPasswordStrength(password);
+        strengthDiv.className = `password-strength ${strength}`;
+        
+        const strengthLabels = {
+            weak: 'Weak',
+            medium: 'Medium',
+            strong: 'Strong'
+        };
+        strengthText.textContent = `Password strength: ${strengthLabels[strength]}`;
+    }
+
+    function checkPasswordMatch() {
+        const password1 = fields.password1.value;
+        const password2 = fields.password2.value;
+        const matchDiv = document.getElementById('password_match');
+        const matchText = document.getElementById('match_text');
+        
+        if (password2.length === 0) {
+            matchDiv.classList.remove('show');
+            return;
+        }
+        
+        matchDiv.classList.add('show');
+        if (password1 === password2 && password1.length > 0) {
+            matchDiv.classList.remove('mismatch');
+            matchDiv.classList.add('match');
+            matchText.textContent = '✓ Passwords match';
+        } else {
+            matchDiv.classList.remove('match');
+            matchDiv.classList.add('mismatch');
+            matchText.textContent = '✗ Passwords do not match';
+        }
+    }
+
+    function calculateProgress() {
+        let completed = 0;
+        const total = Object.keys(fields).length;
+        
+        Object.keys(fields).forEach(fieldId => {
+            const field = fields[fieldId];
+            if (!field) return;
+            
+            let isValid = false;
+            const value = field.value.trim();
+            
+            if (fieldId === 'first_name') {
+                isValid = validateFirstName(value);
+            } else if (fieldId === 'last_name') {
+                isValid = validateLastName(value);
+            } else if (fieldId === 'username') {
+                isValid = validateUsername(value);
+            } else if (fieldId === 'email') {
+                isValid = validateEmail(value);
+            } else if (fieldId === 'section') {
+                isValid = validateSection(value);
+            } else if (fieldId === 'student_id') {
+                isValid = validateStudentId(value);
+            } else if (fieldId === 'password1') {
+                isValid = validatePassword(value);
+            } else if (fieldId === 'password2') {
+                isValid = validatePassword(value) && value === fields.password1.value;
+            }
+            
+            if (isValid) completed++;
+        });
+        
+        const percentage = Math.round((completed / total) * 100);
+        progressBar.style.width = percentage + '%';
+        progressPercentage.textContent = percentage + '%';
+        
+        // Update step indicators
+        const step1 = document.getElementById('step1');
+        const step2 = document.getElementById('step2');
+        const step3 = document.getElementById('step3');
+        
+        const personalInfoComplete = validateFirstName(fields.first_name.value) && 
+                                     validateLastName(fields.last_name.value) &&
+                                     validateStudentId(fields.student_id.value) &&
+                                     validateSection(fields.section.value);
+        
+        const accountComplete = validateUsername(fields.username.value) && 
+                               validateEmail(fields.email.value);
+        
+        const securityComplete = validatePassword(fields.password1.value) && 
+                                fields.password1.value === fields.password2.value;
+        
+        step1.classList.toggle('completed', personalInfoComplete);
+        step2.classList.toggle('completed', accountComplete);
+        step3.classList.toggle('completed', securityComplete);
+        
+        step1.classList.toggle('active', !personalInfoComplete && (fields.first_name.value || fields.last_name.value));
+        step2.classList.toggle('active', personalInfoComplete && !accountComplete && (fields.username.value || fields.email.value));
+        step3.classList.toggle('active', personalInfoComplete && accountComplete && !securityComplete);
+    }
+
+    // Add event listeners
+    fields.first_name.addEventListener('input', function() {
+        updateFieldValidation('first_name', validateFirstName(this.value), 'first_name_icon');
+        calculateProgress();
+    });
+
+    fields.last_name.addEventListener('input', function() {
+        updateFieldValidation('last_name', validateLastName(this.value), 'last_name_icon');
+        calculateProgress();
+    });
+
+    fields.username.addEventListener('input', function() {
+        const isValid = validateUsername(this.value);
+        updateFieldValidation('username', isValid, 'username_icon', 'username_error');
+        if (!isValid && this.value.trim().length > 0) {
+            const errorEl = document.getElementById('username_error');
+            if (errorEl) {
+                errorEl.textContent = 'Username must be at least 3 characters and contain only letters, numbers, and underscores';
+                errorEl.style.display = 'block';
+            }
+        }
+        calculateProgress();
+    });
+
+    fields.email.addEventListener('input', function() {
+        const isValid = validateEmail(this.value);
+        updateFieldValidation('email', isValid, 'email_icon', 'email_error');
+        if (!isValid && this.value.trim().length > 0) {
+            const errorEl = document.getElementById('email_error');
+            if (errorEl) {
+                errorEl.textContent = 'Please enter a valid email address';
+                errorEl.style.display = 'block';
+            }
+        }
+        calculateProgress();
+    });
+
+    fields.section.addEventListener('change', function() {
+        const isValid = validateSection(this.value);
+        updateFieldValidation('section', isValid, 'section_icon');
+        // Update select field classes
+        if (isValid) {
+            this.classList.remove('invalid');
+            this.classList.add('valid');
+        } else {
+            this.classList.remove('valid');
+            this.classList.add('invalid');
+        }
+        calculateProgress();
+    });
+
+    fields.student_id.addEventListener('input', function() {
+        updateFieldValidation('student_id', validateStudentId(this.value), 'student_id_icon');
+        calculateProgress();
+    });
+
+    fields.password1.addEventListener('input', function() {
+        updateFieldValidation('password1', validatePassword(this.value), 'password1_icon');
+        updatePasswordStrength();
+        checkPasswordMatch();
+        calculateProgress();
+    });
+
+    fields.password2.addEventListener('input', function() {
+        const isValid = validatePassword(this.value) && this.value === fields.password1.value;
+        updateFieldValidation('password2', isValid, 'password2_icon');
+        checkPasswordMatch();
+        calculateProgress();
+    });
+
+    // Initial progress calculation
+    calculateProgress();
+    
+    // Form submission validation
+    form.addEventListener('submit', function(e) {
+        let isValid = true;
+        
+        if (!validateFirstName(fields.first_name.value)) isValid = false;
+        if (!validateLastName(fields.last_name.value)) isValid = false;
+        if (!validateUsername(fields.username.value)) isValid = false;
+        if (!validateEmail(fields.email.value)) isValid = false;
+        if (!validateSection(fields.section.value)) isValid = false;
+        if (!validateStudentId(fields.student_id.value)) isValid = false;
+        if (!validatePassword(fields.password1.value)) isValid = false;
+        if (fields.password1.value !== fields.password2.value) isValid = false;
+        
+        if (!isValid) {
+            e.preventDefault();
+            alert('Please fill in all fields correctly before submitting.');
+            return false;
+        }
+    });
+})();
 </script>
 {% endblock %}

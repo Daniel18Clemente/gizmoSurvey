@@ -2,6 +2,172 @@
 
 {% block title %}{{ survey.title }} - Take Survey{% endblock %}
 
+{% block extra_css %}
+<style>
+    /* Progress Indicator Styles */
+    .survey-progress-indicator {
+        background: var(--bg-secondary);
+        border-radius: var(--radius-md);
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        border: 2px solid var(--border-light);
+    }
+
+    .survey-progress-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+
+    .survey-progress-label {
+        font-weight: 600;
+        color: var(--text-primary);
+        font-size: 0.95rem;
+    }
+
+    .survey-progress-percentage {
+        font-weight: 700;
+        color: var(--primary-color);
+        font-size: 1.1rem;
+    }
+
+    .survey-progress-stats {
+        display: flex;
+        gap: 1.5rem;
+        margin-bottom: 1rem;
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+    }
+
+    .survey-progress-stats span {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .survey-progress-bar-container {
+        width: 100%;
+        height: 10px;
+        background: var(--bg-tertiary);
+        border-radius: 10px;
+        overflow: hidden;
+        margin-bottom: 1rem;
+    }
+
+    .survey-progress-bar {
+        height: 100%;
+        background: linear-gradient(90deg, var(--primary-color), var(--primary-light));
+        border-radius: 10px;
+        transition: width 0.3s ease;
+        width: 0%;
+    }
+
+    /* Question Validation Styles */
+    .question-item {
+        position: relative;
+        padding: 1.5rem;
+        border: 2px solid var(--border-light);
+        border-radius: var(--radius-md);
+        margin-bottom: 1.5rem;
+        background: var(--bg-primary);
+        transition: all 0.3s ease;
+    }
+
+    .question-item.answered {
+        border-color: var(--success-color);
+        background: rgba(16, 185, 129, 0.05);
+    }
+
+    .question-item.required-unanswered {
+        border-color: var(--danger-color);
+        background: rgba(239, 68, 68, 0.05);
+    }
+
+    .question-validation-icon {
+        position: absolute;
+        top: 1.5rem;
+        right: 1.5rem;
+        font-size: 1.5rem;
+        transition: opacity 0.3s ease;
+    }
+
+    .question-validation-icon.valid {
+        color: var(--success-color);
+    }
+
+    .question-validation-icon.invalid {
+        color: var(--danger-color);
+    }
+
+    .form-check-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .form-check {
+        padding: 0.75rem;
+        border: 2px solid var(--border-light);
+        border-radius: var(--radius-sm);
+        transition: all 0.2s ease;
+        cursor: pointer;
+    }
+
+    .form-check:hover {
+        border-color: var(--primary-color);
+        background: rgba(37, 99, 235, 0.05);
+    }
+
+    .form-check input[type="radio"]:checked + label,
+    .form-check input[type="radio"]:checked {
+        color: var(--primary-color);
+        font-weight: 600;
+    }
+
+    .form-check:has(input[type="radio"]:checked) {
+        border-color: var(--primary-color);
+        background: rgba(37, 99, 235, 0.1);
+    }
+
+    .form-control:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    .form-control.answered {
+        border-color: var(--success-color);
+    }
+
+    .question-counter {
+        font-size: 0.875rem;
+        color: var(--text-muted);
+        margin-left: 0.5rem;
+    }
+
+    .form-floating {
+        margin-top: 0.5rem;
+    }
+
+    .form-floating .form-control {
+        border: 2px solid var(--border-light);
+        border-radius: var(--radius-md);
+        padding: 1rem;
+        transition: all 0.3s ease;
+    }
+
+    .form-floating .form-control:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    .form-floating textarea.form-control {
+        min-height: 100px;
+        resize: vertical;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container py-4">
     <div class="row justify-content-center">
@@ -36,6 +202,31 @@
                 </div>
             </div>
 
+            <!-- Progress Indicator -->
+            <div class="survey-progress-indicator">
+                <div class="survey-progress-header">
+                    <span class="survey-progress-label">Survey Progress</span>
+                    <span class="survey-progress-percentage" id="surveyProgressPercentage">0%</span>
+                </div>
+                <div class="survey-progress-stats">
+                    <span>
+                        <i class="bi bi-check-circle-fill" style="color: var(--success-color);"></i>
+                        <span id="answeredCount">0</span> answered
+                    </span>
+                    <span>
+                        <i class="bi bi-exclamation-circle-fill" style="color: var(--danger-color);"></i>
+                        <span id="requiredCount">0</span> required remaining
+                    </span>
+                    <span>
+                        <i class="bi bi-list-ul"></i>
+                        <span id="totalCount">{{ form.fields|length }}</span> total questions
+                    </span>
+                </div>
+                <div class="survey-progress-bar-container">
+                    <div class="survey-progress-bar" id="surveyProgressBar"></div>
+                </div>
+            </div>
+
             <!-- Survey Form -->
             <form method="post" id="surveyForm">
                 {% csrf_token %}
@@ -44,35 +235,59 @@
                     <div class="card-header">
                         <h5 class="mb-0">
                             <i class="bi bi-question-circle"></i> Questions
+                            <span class="question-counter">(Answer all required questions to submit)</span>
                         </h5>
                     </div>
                     <div class="card-body">
                         {% for field in form %}
-                            <div class="question-item mb-4">
+                            <div class="question-item" data-question-id="{{ field.name }}" data-required="{{ field.field.required|yesno:'true,false' }}">
+                                <span class="question-validation-icon" id="{{ field.name }}_icon"></span>
                                 <div class="d-flex justify-content-between align-items-start mb-2">
-                                    <label class="form-label fw-bold mb-0">{{ field.label }}</label>
+                                    <label class="form-label fw-bold mb-0">
+                                        {{ forloop.counter }}. {{ field.label }}
+                                    </label>
                                     {% if field.field.required %}
                                         <span class="badge bg-danger">Required</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">Optional</span>
                                     {% endif %}
                                 </div>
                                 
-                                {% if field.field.widget.input_type == 'radio' %}
+                                {% if "RadioSelect" in field.field.widget|stringformat:"s" %}
                                     <div class="form-check-group">
                                         {% for choice in field %}
-                                            <div class="form-check mb-2">
+                                            <div class="form-check">
                                                 {{ choice.tag }}
                                                 <label class="form-check-label" for="{{ choice.id_for_label }}">
-                                                    {{ choice.choice_label }}
+                                                    {% for value, label in field.field.choices %}
+                                                        {% if value|stringformat:"s" == choice.data.value|stringformat:"s" %}
+                                                            {{ label }}
+                                                        {% endif %}
+                                                    {% endfor %}
                                                 </label>
                                             </div>
                                         {% endfor %}
                                     </div>
+                                {% elif field.field.widget.input_type == 'text' %}
+                                    <div class="form-floating">
+                                        {{ field }}
+                                        <label for="{{ field.id_for_label }}">Your answer</label>
+                                    </div>
+                                {% elif field.field.widget.input_type == 'textarea' or field.field.widget|stringformat:"s" == "Textarea" %}
+                                    <div class="form-floating">
+                                        {{ field }}
+                                        <label for="{{ field.id_for_label }}">Your answer</label>
+                                    </div>
                                 {% else %}
-                                    {{ field }}
+                                    <div class="mt-2">
+                                        {{ field }}
+                                    </div>
                                 {% endif %}
                                 
                                 {% if field.errors %}
-                                    <div class="text-danger small mt-1">{{ field.errors.0 }}</div>
+                                    <div class="text-danger small mt-2">
+                                        <i class="bi bi-exclamation-triangle"></i> {{ field.errors.0 }}
+                                    </div>
                                 {% endif %}
                             </div>
                         {% endfor %}
@@ -94,29 +309,231 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('surveyForm');
+    const progressBar = document.getElementById('surveyProgressBar');
+    const progressPercentage = document.getElementById('surveyProgressPercentage');
+    const answeredCountEl = document.getElementById('answeredCount');
+    const requiredCountEl = document.getElementById('requiredCount');
+    const totalCountEl = document.getElementById('totalCount');
     
-    // Form validation
-    form.addEventListener('submit', function(e) {
-        const requiredFields = document.querySelectorAll('input[required], textarea[required]');
-        let allRequiredFilled = true;
+    // Get all question items
+    const questionItems = document.querySelectorAll('.question-item');
+    const totalQuestions = questionItems.length;
+    totalCountEl.textContent = totalQuestions;
+    
+    // Track question states
+    const questionStates = {};
+    
+    // Initialize question states
+    questionItems.forEach(item => {
+        const questionId = item.dataset.questionId;
+        const isRequired = item.dataset.required === 'true';
+        questionStates[questionId] = {
+            answered: false,
+            required: isRequired
+        };
+    });
+    
+    // Check if a question is answered
+    function isQuestionAnswered(questionId) {
+        const questionItem = document.querySelector(`[data-question-id="${questionId}"]`);
+        if (!questionItem) return false;
         
-        requiredFields.forEach(function(field) {
-            if (field.type === 'radio') {
-                const radioGroup = document.querySelectorAll(`input[name="${field.name}"]`);
-                const isChecked = Array.from(radioGroup).some(radio => radio.checked);
-                if (!isChecked) {
-                    allRequiredFilled = false;
+        // Check for radio buttons (multiple choice and likert scale)
+        const radioInputs = questionItem.querySelectorAll('input[type="radio"]');
+        if (radioInputs.length > 0) {
+            return Array.from(radioInputs).some(radio => radio.checked);
+        }
+        
+        // Check for text inputs
+        const textInput = questionItem.querySelector('input[type="text"]');
+        if (textInput) {
+            return textInput.value.trim().length > 0;
+        }
+        
+        // Check for textareas (long answer)
+        const textarea = questionItem.querySelector('textarea');
+        if (textarea) {
+            return textarea.value.trim().length > 0;
+        }
+        
+        return false;
+    }
+    
+    // Update question visual state
+    function updateQuestionState(questionId) {
+        const questionItem = document.querySelector(`[data-question-id="${questionId}"]`);
+        const icon = document.getElementById(`${questionId}_icon`);
+        if (!questionItem || !icon) return;
+        
+        const isAnswered = isQuestionAnswered(questionId);
+        const isRequired = questionStates[questionId].required;
+        
+        questionStates[questionId].answered = isAnswered;
+        
+        // Update visual state
+        questionItem.classList.remove('answered', 'required-unanswered');
+        
+        if (isAnswered) {
+            questionItem.classList.add('answered');
+            icon.textContent = '✓';
+            icon.className = 'question-validation-icon valid';
+            
+            // Update input styling
+            const inputs = questionItem.querySelectorAll('input, textarea');
+            inputs.forEach(input => {
+                if (input.type !== 'radio' && input.type !== 'checkbox') {
+                    input.classList.add('answered');
                 }
-            } else if (!field.value.trim()) {
+            });
+        } else if (isRequired) {
+            questionItem.classList.add('required-unanswered');
+            icon.textContent = '✗';
+            icon.className = 'question-validation-icon invalid';
+            
+            // Remove answered class from inputs
+            const inputs = questionItem.querySelectorAll('input, textarea');
+            inputs.forEach(input => {
+                input.classList.remove('answered');
+            });
+        } else {
+            icon.textContent = '';
+            icon.className = 'question-validation-icon';
+            
+            // Remove answered class from inputs
+            const inputs = questionItem.querySelectorAll('input, textarea');
+            inputs.forEach(input => {
+                input.classList.remove('answered');
+            });
+        }
+    }
+    
+    // Calculate and update progress
+    function updateProgress() {
+        let answered = 0;
+        let requiredAnswered = 0;
+        let requiredTotal = 0;
+        let requiredUnanswered = 0;
+        
+        Object.keys(questionStates).forEach(questionId => {
+            const state = questionStates[questionId];
+            if (state.answered) {
+                answered++;
+                if (state.required) {
+                    requiredAnswered++;
+                }
+            }
+            if (state.required) {
+                requiredTotal++;
+                if (!state.answered) {
+                    requiredUnanswered++;
+                }
+            }
+        });
+        
+        // Update counts
+        answeredCountEl.textContent = answered;
+        requiredCountEl.textContent = requiredUnanswered;
+        
+        // Calculate percentage (based on required questions)
+        const percentage = requiredTotal > 0 
+            ? Math.round((requiredAnswered / requiredTotal) * 100)
+            : Math.round((answered / totalQuestions) * 100);
+        
+        progressBar.style.width = percentage + '%';
+        progressPercentage.textContent = percentage + '%';
+    }
+    
+    // Add event listeners to all form inputs
+    questionItems.forEach(item => {
+        const questionId = item.dataset.questionId;
+        
+        // Radio buttons
+        const radioInputs = item.querySelectorAll('input[type="radio"]');
+        radioInputs.forEach(radio => {
+            radio.addEventListener('change', function() {
+                updateQuestionState(questionId);
+                updateProgress();
+            });
+        });
+        
+        // Text inputs
+        const textInputs = item.querySelectorAll('input[type="text"]');
+        textInputs.forEach(input => {
+            input.addEventListener('input', function() {
+                updateQuestionState(questionId);
+                updateProgress();
+            });
+            
+            input.addEventListener('blur', function() {
+                updateQuestionState(questionId);
+                updateProgress();
+            });
+        });
+        
+        // Textareas
+        const textareas = item.querySelectorAll('textarea');
+        textareas.forEach(textarea => {
+            textarea.addEventListener('input', function() {
+                updateQuestionState(questionId);
+                updateProgress();
+            });
+            
+            textarea.addEventListener('blur', function() {
+                updateQuestionState(questionId);
+                updateProgress();
+            });
+        });
+    });
+    
+    // Initial state update
+    Object.keys(questionStates).forEach(questionId => {
+        updateQuestionState(questionId);
+    });
+    updateProgress();
+    
+    // Form submission validation
+    form.addEventListener('submit', function(e) {
+        let allRequiredFilled = true;
+        const missingQuestions = [];
+        
+        Object.keys(questionStates).forEach(questionId => {
+            const state = questionStates[questionId];
+            if (state.required && !state.answered) {
                 allRequiredFilled = false;
+                const questionItem = document.querySelector(`[data-question-id="${questionId}"]`);
+                const label = questionItem ? questionItem.querySelector('label').textContent : questionId;
+                missingQuestions.push(label.replace(/^\d+\.\s*/, ''));
             }
         });
         
         if (!allRequiredFilled) {
             e.preventDefault();
-            alert('Please answer all required questions before submitting.');
+            const missingList = missingQuestions.slice(0, 5).join(', ');
+            const moreText = missingQuestions.length > 5 ? ` and ${missingQuestions.length - 5} more` : '';
+            alert(`Please answer all required questions before submitting.\n\nMissing: ${missingList}${moreText}`);
+            
+            // Scroll to first unanswered required question
+            const firstUnanswered = document.querySelector('.required-unanswered');
+            if (firstUnanswered) {
+                firstUnanswered.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                firstUnanswered.style.animation = 'none';
+                setTimeout(() => {
+                    firstUnanswered.style.animation = 'pulse 0.5s ease-in-out 3';
+                }, 10);
+            }
+            return false;
         }
     });
+    
+    // Add pulse animation for highlighting
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+            50% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+        }
+    `;
+    document.head.appendChild(style);
 });
 </script>
 {% endblock %}

@@ -109,6 +109,14 @@
                                                     <span class="badge bg-success status-badge">
                                                         <i class="bi bi-check-circle"></i> Completed
                                                     </span>
+                                                {% elif survey.id in inactive_surveys %}
+                                                    <span class="badge bg-secondary status-badge">
+                                                        <i class="bi bi-pause-circle"></i> Closed
+                                                    </span>
+                                                {% elif survey.id in expired_surveys %}
+                                                    <span class="badge bg-danger status-badge">
+                                                        <i class="bi bi-exclamation-triangle"></i> Expired
+                                                    </span>
                                                 {% elif survey.id in surveys_to_retake %}
                                                     <span class="badge bg-warning status-badge">
                                                         <i class="bi bi-arrow-clockwise"></i> Needs Retake
@@ -152,6 +160,14 @@
                                                 {% if survey.id in completed_surveys %}
                                                     <button class="btn btn-outline-success btn-sm" disabled>
                                                         <i class="bi bi-check"></i> Completed
+                                                    </button>
+                                                {% elif survey.id in inactive_surveys %}
+                                                    <button class="btn btn-outline-secondary btn-sm" disabled>
+                                                        <i class="bi bi-pause"></i> Closed
+                                                    </button>
+                                                {% elif survey.id in expired_surveys %}
+                                                    <button class="btn btn-outline-danger btn-sm" disabled>
+                                                        <i class="bi bi-exclamation-triangle"></i> Expired
                                                     </button>
                                                 {% elif survey.id in surveys_to_retake %}
                                                     <a href="{% url 'take_survey' survey.id %}" class="btn btn-warning btn-sm">

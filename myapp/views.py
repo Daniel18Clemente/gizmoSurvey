@@ -125,15 +125,19 @@ def student_dashboard(request):
         messages.error(request, 'Your account has been deactivated. Please contact your teacher.')
         return redirect('home')
     
-    # Get surveys assigned to student's section
+    # Get surveys assigned to student's section (including inactive ones)
     assigned_surveys = Survey.objects.filter(
-        sections=profile.section,
-        is_active=True
+        sections=profile.section
     ).order_by('-created_at')
     
     # Check which surveys student has already completed (current version)
     completed_surveys = []
+    inactive_surveys = []
     for survey in assigned_surveys:
+        # Track inactive surveys
+        if not survey.is_active:
+            inactive_surveys.append(survey.id)
+        
         latest_response = SurveyResponse.objects.filter(
             survey=survey, 
             student=request.user
@@ -142,24 +146,41 @@ def student_dashboard(request):
         if latest_response and latest_response.survey_version >= survey.version:
             completed_surveys.append(survey.id)
     
-    # Check which surveys need to be retaken (outdated responses)
+    # Check which surveys need to be retaken (outdated responses) - but only if not expired and active
     surveys_to_retake = []
+    expired_surveys = []
     for survey in assigned_surveys:
-        latest_response = SurveyResponse.objects.filter(
-            survey=survey, 
-            student=request.user
-        ).order_by('-submitted_at').first()
+        # Skip inactive surveys for retake/expired checks
+        if not survey.is_active:
+            continue
+            
+        # Check if survey is expired
+        is_expired = False
+        if survey.due_date and timezone.now() > survey.due_date:
+            is_expired = True
+            expired_surveys.append(survey.id)
         
-        if latest_response and latest_response.survey_version < survey.version:
-            surveys_to_retake.append(survey.id)
+        # Only add to retake list if not expired
+        if not is_expired:
+            latest_response = SurveyResponse.objects.filter(
+                survey=survey, 
+                student=request.user
+            ).order_by('-submitted_at').first()
+            
+            if latest_response and latest_response.survey_version < survey.version:
+                surveys_to_retake.append(survey.id)
     
-    # Calculate pending surveys (assigned - completed - retake)
-    pending_count = assigned_surveys.count() - len(completed_surveys) - len(surveys_to_retake)
+    # Calculate pending surveys (only active surveys count as pending)
+    active_surveys = assigned_surveys.filter(is_active=True)
+    active_pending = active_surveys.count() - len([s for s in completed_surveys if s not in inactive_surveys]) - len(surveys_to_retake) - len(expired_surveys)
+    pending_count = max(0, active_pending)
     
     context = {
         'assigned_surveys': assigned_surveys,
         'completed_surveys': completed_surveys,
         'surveys_to_retake': surveys_to_retake,
+        'expired_surveys': expired_surveys,
+        'inactive_surveys': inactive_surveys,
         'pending_count': pending_count,
         'profile': profile,
     }
@@ -188,7 +209,10 @@ def take_survey(request, survey_id):
     
     # Check if survey is still open
     if not survey.is_open:
-        messages.error(request, 'This survey is no longer accepting responses.')
+        if not survey.is_active:
+            messages.error(request, 'This survey is closed and no longer accepting responses.')
+        else:
+            messages.error(request, 'This survey is no longer accepting responses (deadline has passed).')
         return redirect('student_dashboard')
     
     # Check if student has already completed the current version of this survey
