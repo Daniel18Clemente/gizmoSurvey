@@ -34,22 +34,87 @@
     <div class="row mb-4">
         <div class="col-12">
             <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-funnel"></i> Filters & Search
+                    </h5>
+                </div>
                 <div class="card-body">
-                    <form method="get" class="row g-3">
-                        <div class="col-md-8">
-                            <div class="input-group">
-                                <span class="input-group-text">
-                                    <i class="bi bi-search"></i>
-                                </span>
-                                <input type="text" class="form-control" name="search" 
-                                       placeholder="Search by student name or username..." 
-                                       value="{{ search_query }}">
+                    <form method="get" id="filterForm">
+                        <div class="row g-3">
+                            <!-- Search -->
+                            <div class="col-md-6">
+                                <label class="form-label">Search Student</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <i class="bi bi-search"></i>
+                                    </span>
+                                    <input type="text" class="form-control" name="search" 
+                                           placeholder="Search by name or username..." 
+                                           value="{{ search_query }}">
+                                </div>
                             </div>
-                        </div>
-                        <div class="col-md-4">
-                            <button type="submit" class="btn btn-primary w-100">
-                                <i class="bi bi-search"></i> Search
-                            </button>
+                            
+                            <!-- Section Filter -->
+                            <div class="col-md-3">
+                                <label class="form-label">Section</label>
+                                <select class="form-select" name="section">
+                                    <option value="">All Sections</option>
+                                    {% for section in sections %}
+                                        <option value="{{ section.id }}" {% if section_filter|stringformat:"s" == section.id|stringformat:"s" %}selected{% endif %}>
+                                            {{ section.name }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            
+                            <!-- Status Filter -->
+                            <div class="col-md-3">
+                                <label class="form-label">Status</label>
+                                <select class="form-select" name="status">
+                                    <option value="">All Status</option>
+                                    <option value="complete" {% if status_filter == 'complete' %}selected{% endif %}>Complete</option>
+                                    <option value="incomplete" {% if status_filter == 'incomplete' %}selected{% endif %}>Incomplete</option>
+                                </select>
+                            </div>
+                            
+                            <!-- Version Filter -->
+                            <div class="col-md-3">
+                                <label class="form-label">Version</label>
+                                <select class="form-select" name="version">
+                                    <option value="">All Versions</option>
+                                    {% for version in all_versions %}
+                                        <option value="{{ version }}" {% if version_filter|stringformat:"s" == version|stringformat:"s" %}selected{% endif %}>
+                                            Version {{ version }}{% if version == survey.version %} (Current){% endif %}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            
+                            <!-- Date From -->
+                            <div class="col-md-3">
+                                <label class="form-label">Date From</label>
+                                <input type="date" class="form-control" name="date_from" value="{{ date_from }}">
+                            </div>
+                            
+                            <!-- Date To -->
+                            <div class="col-md-3">
+                                <label class="form-label">Date To</label>
+                                <input type="date" class="form-control" name="date_to" value="{{ date_to }}">
+                            </div>
+                            
+                            <!-- Action Buttons -->
+                            <div class="col-md-3">
+                                <label class="form-label">&nbsp;</label>
+                                <div class="d-flex gap-2">
+                                    <button type="submit" class="btn btn-primary flex-fill">
+                                        <i class="bi bi-search"></i> Apply Filters
+                                    </button>
+                                    <a href="{% url 'survey_responses' survey.id %}" class="btn btn-outline-secondary">
+                                        <i class="bi bi-x-circle"></i> Clear
+                                    </a>
+                                </div>
+                            </div>
                         </div>
                     </form>
                 </div>
@@ -64,6 +129,9 @@
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">
                         <i class="bi bi-list-check"></i> Student Responses
+                        <span class="badge bg-secondary ms-2">
+                            Showing {{ page_obj.start_index }}-{{ page_obj.end_index }} of {{ page_obj.paginator.count }}
+                        </span>
                     </h5>
                     <div class="d-flex gap-2">
                         <span class="badge bg-success fs-6">{{ current_version_count }} current</span>
@@ -179,6 +247,59 @@
                                 </a>
                             {% endif %}
                         </div>
+                    {% endif %}
+                    
+                    <!-- Pagination -->
+                    {% if page_obj.has_other_pages %}
+                        <nav aria-label="Page navigation" class="mt-4">
+                            <ul class="pagination justify-content-center">
+                                {% if page_obj.has_previous %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?{% if search_query %}search={{ search_query }}&{% endif %}{% if section_filter %}section={{ section_filter }}&{% endif %}{% if status_filter %}status={{ status_filter }}&{% endif %}{% if version_filter %}version={{ version_filter }}&{% endif %}{% if date_from %}date_from={{ date_from }}&{% endif %}{% if date_to %}date_to={{ date_to }}&{% endif %}page=1">
+                                            <i class="bi bi-chevron-double-left"></i> First
+                                        </a>
+                                    </li>
+                                    <li class="page-item">
+                                        <a class="page-link" href="?{% if search_query %}search={{ search_query }}&{% endif %}{% if section_filter %}section={{ section_filter }}&{% endif %}{% if status_filter %}status={{ status_filter }}&{% endif %}{% if version_filter %}version={{ version_filter }}&{% endif %}{% if date_from %}date_from={{ date_from }}&{% endif %}{% if date_to %}date_to={{ date_to }}&{% endif %}page={{ page_obj.previous_page_number }}">
+                                            <i class="bi bi-chevron-left"></i> Previous
+                                        </a>
+                                    </li>
+                                {% else %}
+                                    <li class="page-item disabled">
+                                        <span class="page-link"><i class="bi bi-chevron-double-left"></i> First</span>
+                                    </li>
+                                    <li class="page-item disabled">
+                                        <span class="page-link"><i class="bi bi-chevron-left"></i> Previous</span>
+                                    </li>
+                                {% endif %}
+                                
+                                <li class="page-item active">
+                                    <span class="page-link">
+                                        Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                                    </span>
+                                </li>
+                                
+                                {% if page_obj.has_next %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?{% if search_query %}search={{ search_query }}&{% endif %}{% if section_filter %}section={{ section_filter }}&{% endif %}{% if status_filter %}status={{ status_filter }}&{% endif %}{% if version_filter %}version={{ version_filter }}&{% endif %}{% if date_from %}date_from={{ date_from }}&{% endif %}{% if date_to %}date_to={{ date_to }}&{% endif %}page={{ page_obj.next_page_number }}">
+                                            Next <i class="bi bi-chevron-right"></i>
+                                        </a>
+                                    </li>
+                                    <li class="page-item">
+                                        <a class="page-link" href="?{% if search_query %}search={{ search_query }}&{% endif %}{% if section_filter %}section={{ section_filter }}&{% endif %}{% if status_filter %}status={{ status_filter }}&{% endif %}{% if version_filter %}version={{ version_filter }}&{% endif %}{% if date_from %}date_from={{ date_from }}&{% endif %}{% if date_to %}date_to={{ date_to }}&{% endif %}page={{ page_obj.paginator.num_pages }}">
+                                            Last <i class="bi bi-chevron-double-right"></i>
+                                        </a>
+                                    </li>
+                                {% else %}
+                                    <li class="page-item disabled">
+                                        <span class="page-link">Next <i class="bi bi-chevron-right"></i></span>
+                                    </li>
+                                    <li class="page-item disabled">
+                                        <span class="page-link">Last <i class="bi bi-chevron-double-right"></i></span>
+                                    </li>
+                                {% endif %}
+                            </ul>
+                        </nav>
                     {% endif %}
                 </div>
             </div>

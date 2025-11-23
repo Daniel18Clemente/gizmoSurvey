@@ -67,6 +67,8 @@ class SurveyForm(forms.ModelForm):
         self.fields['due_date'].required = True
         # Only show active sections
         self.fields['sections'].queryset = Section.objects.filter(is_active=True)
+        # Ensure is_active field is properly handled (required=False for checkboxes)
+        self.fields['is_active'].required = False
 
 
 class QuestionForm(forms.ModelForm):
@@ -159,6 +161,8 @@ class SurveySettingsForm(forms.ModelForm):
         self.fields['due_date'].required = True
         # Only show active sections
         self.fields['sections'].queryset = Section.objects.filter(is_active=True)
+        # Ensure is_active field is properly handled (required=False for checkboxes)
+        self.fields['is_active'].required = False
         # Add CSS classes to all form fields
         for field_name, field in self.fields.items():
             if isinstance(field.widget, forms.TextInput):

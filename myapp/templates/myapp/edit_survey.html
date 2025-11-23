@@ -38,7 +38,7 @@
 
     <div class="row">
         <!-- Survey Settings -->
-        <div class="col-lg-4">
+        <div class="col-lg-3">
             <div class="card">
                 <div class="card-header">
                     <h5 class="mb-0">
@@ -134,7 +134,7 @@
         </div>
 
         <!-- Questions Management -->
-        <div class="col-lg-8">
+        <div class="col-lg-6">
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">
@@ -149,7 +149,15 @@
                         </button>
                     </div>
                 </div>
-                <div class="card-body">
+                <div class="card-body" id="questionsDropZone">
+                    <!-- Drop Zone Indicator -->
+                    <div id="dropZoneIndicator" class="drop-zone-indicator" style="display: none;">
+                        <div class="drop-zone-content">
+                            <i class="bi bi-plus-circle display-4 text-primary"></i>
+                            <p class="mt-2 mb-0">Drop question here to add</p>
+                        </div>
+                    </div>
+                    
                     <!-- Inline Question Form (Hidden by default) -->
                     <div id="questionFormContainer" style="display: none;" class="mb-4">
                         <div class="card border-primary">
@@ -334,15 +342,101 @@
                             {% endfor %}
                         </div>
                     {% else %}
-                        <div class="text-center py-5">
+                        <div class="text-center py-5" id="emptyQuestionsArea">
                             <i class="bi bi-question-circle display-1 text-muted"></i>
                             <h5 class="text-muted mt-3">No questions yet</h5>
-                            <p class="text-muted">Add your first question to get started.</p>
+                            <p class="text-muted">Drag a question from the toolbox or click below to add your first question.</p>
                             <button type="button" class="btn btn-primary" id="addFirstQuestionBtn">
                                 <i class="bi bi-plus"></i> Add First Question
                             </button>
                         </div>
                     {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Component Toolbox -->
+        <div class="col-lg-3">
+            <div class="card component-toolbox" style="position: sticky; top: 20px; max-height: calc(100vh - 40px); overflow-y: auto;">
+                <div class="card-header bg-light">
+                    <div class="d-flex align-items-center mb-2">
+                        <i class="bi bi-file-earmark-text me-2"></i>
+                        <h6 class="mb-0 fw-bold">Component Toolbox</h6>
+                    </div>
+                    <small class="text-muted">Drag to add questions</small>
+                </div>
+                <div class="card-body p-2">
+                    <!-- Text Inputs Section -->
+                    <div class="toolbox-section">
+                        <div class="toolbox-section-header" data-section="text-inputs">
+                            <span class="fw-semibold">Text Inputs (2)</span>
+                            <i class="bi bi-chevron-down ms-auto"></i>
+                        </div>
+                        <div class="toolbox-section-content" id="text-inputs-section">
+                            <!-- Short Text -->
+                            <div class="toolbox-component" draggable="true" data-question-type="short_answer">
+                                <div class="component-icon bg-info">
+                                    <i class="bi bi-type-h1"></i>
+                                </div>
+                                <div class="component-info">
+                                    <div class="component-title">Short Text</div>
+                                    <div class="component-description">Single line text input</div>
+                                </div>
+                                <div class="component-menu">
+                                    <i class="bi bi-three-dots-vertical"></i>
+                                </div>
+                            </div>
+                            <!-- Long Text -->
+                            <div class="toolbox-component" draggable="true" data-question-type="long_answer">
+                                <div class="component-icon bg-purple">
+                                    <i class="bi bi-file-text"></i>
+                                </div>
+                                <div class="component-info">
+                                    <div class="component-title">Long Text</div>
+                                    <div class="component-description">Multi-line text area</div>
+                                </div>
+                                <div class="component-menu">
+                                    <i class="bi bi-three-dots-vertical"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Choice Questions Section -->
+                    <div class="toolbox-section">
+                        <div class="toolbox-section-header" data-section="choice-questions">
+                            <span class="fw-semibold">Choice Questions (2)</span>
+                            <i class="bi bi-chevron-down ms-auto"></i>
+                        </div>
+                        <div class="toolbox-section-content" id="choice-questions-section">
+                            <!-- Multiple Choice -->
+                            <div class="toolbox-component" draggable="true" data-question-type="multiple_choice">
+                                <div class="component-icon bg-primary">
+                                    <i class="bi bi-list-ul"></i>
+                                </div>
+                                <div class="component-info">
+                                    <div class="component-title">Multiple Choice</div>
+                                    <div class="component-description">Single selection</div>
+                                </div>
+                                <div class="component-menu">
+                                    <i class="bi bi-three-dots-vertical"></i>
+                                </div>
+                            </div>
+                            <!-- Likert Scale -->
+                            <div class="toolbox-component" draggable="true" data-question-type="likert_scale">
+                                <div class="component-icon bg-warning">
+                                    <i class="bi bi-bar-chart"></i>
+                                </div>
+                                <div class="component-info">
+                                    <div class="component-title">Likert Scale</div>
+                                    <div class="component-description">Rating scale</div>
+                                </div>
+                                <div class="component-menu">
+                                    <i class="bi bi-three-dots-vertical"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -450,6 +544,159 @@
 .drop-indicator.active {
     opacity: 1;
 }
+
+/* Component Toolbox Styles */
+.component-toolbox {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+}
+
+.toolbox-section {
+    margin-bottom: 0.5rem;
+}
+
+.toolbox-section-header {
+    display: flex;
+    align-items: center;
+    padding: 0.5rem 0.75rem;
+    cursor: pointer;
+    user-select: none;
+    background: #ffffff;
+    border-radius: 0.375rem;
+    margin-bottom: 0.25rem;
+    transition: background-color 0.2s;
+}
+
+.toolbox-section-header:hover {
+    background: #f1f3f5;
+}
+
+.toolbox-section-header i {
+    transition: transform 0.2s;
+}
+
+.toolbox-section-header.collapsed i {
+    transform: rotate(-90deg);
+}
+
+.toolbox-section-content {
+    display: block;
+    padding: 0.25rem 0;
+}
+
+.toolbox-section-content.collapsed {
+    display: none;
+}
+
+.toolbox-component {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem;
+    margin-bottom: 0.5rem;
+    background: #ffffff;
+    border: 1px solid #e9ecef;
+    border-radius: 0.5rem;
+    cursor: grab;
+    transition: all 0.2s;
+    gap: 0.75rem;
+}
+
+.toolbox-component:hover {
+    background: #f8f9fa;
+    border-color: #007bff;
+    box-shadow: 0 2px 4px rgba(0, 123, 255, 0.1);
+    transform: translateY(-1px);
+}
+
+.toolbox-component:active {
+    cursor: grabbing;
+    transform: scale(0.98);
+}
+
+.toolbox-component.dragging {
+    opacity: 0.5;
+    transform: rotate(5deg);
+}
+
+.component-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.25rem;
+    flex-shrink: 0;
+}
+
+.bg-purple {
+    background-color: #6f42c1;
+}
+
+.component-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.component-title {
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: #212529;
+    margin-bottom: 0.125rem;
+}
+
+.component-description {
+    font-size: 0.75rem;
+    color: #6c757d;
+}
+
+.component-menu {
+    color: #6c757d;
+    padding: 0.25rem;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.toolbox-component:hover .component-menu {
+    opacity: 1;
+}
+
+/* Drop Zone Styles */
+#questionsDropZone {
+    position: relative;
+    min-height: 200px;
+}
+
+.drop-zone-indicator {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 123, 255, 0.05);
+    border: 2px dashed #007bff;
+    border-radius: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+}
+
+.drop-zone-indicator.active {
+    background: rgba(0, 123, 255, 0.1);
+    border-color: #0056b3;
+}
+
+.drop-zone-content {
+    text-align: center;
+    color: #007bff;
+}
+
+#questionsDropZone.drag-over {
+    background: rgba(0, 123, 255, 0.05);
+}
 </style>
 
 <script>
@@ -538,9 +785,24 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize drag and drop for existing questions
     initializeDragAndDrop();
     
-    function showQuestionForm() {
+    // Initialize component toolbox
+    initializeComponentToolbox();
+    
+    function showQuestionForm(selectedQuestionType = null) {
         questionFormContainer.style.display = 'block';
         questionFormContainer.scrollIntoView({ behavior: 'smooth' });
+        
+        // Pre-fill question type if provided
+        if (selectedQuestionType && questionType) {
+            questionType.value = selectedQuestionType;
+            // Trigger change event to show/hide relevant fields
+            toggleQuestionTypeFields();
+            // Also manually trigger the change event in case toggleQuestionTypeFields doesn't fire it
+            if (questionType.dispatchEvent) {
+                questionType.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+        }
+        
         questionText.focus();
     }
     
@@ -907,44 +1169,64 @@ document.addEventListener('DOMContentLoaded', function() {
             });
             
             function handleDragStart(e) {
-                draggedElement = this;
-                draggedIndex = Array.from(questionsList.children).indexOf(this);
-                this.classList.add('dragging');
-                
-                // Set drag data
-                e.dataTransfer.effectAllowed = 'move';
-                e.dataTransfer.setData('text/html', this.outerHTML);
+                // Only handle if this is a question item drag, not a toolbox component
+                if (!this.classList.contains('toolbox-component')) {
+                    draggedElement = this;
+                    draggedIndex = Array.from(questionsList.children).indexOf(this);
+                    this.classList.add('dragging');
+                    
+                    // Set drag data
+                    e.dataTransfer.effectAllowed = 'move';
+                    e.dataTransfer.setData('text/html', this.outerHTML);
+                    e.dataTransfer.setData('drag-source', 'question-item');
+                }
             }
             
             function handleDragEnd(e) {
-                this.classList.remove('dragging');
-                
-                // Remove all drag-over classes
-                questions.forEach(q => q.classList.remove('drag-over'));
-                
-                // Remove drop indicators
-                const indicators = document.querySelectorAll('.drop-indicator');
-                indicators.forEach(indicator => indicator.remove());
-                
-                draggedElement = null;
-                draggedIndex = -1;
+                // Only handle if this is a question item drag
+                if (!this.classList.contains('toolbox-component')) {
+                    this.classList.remove('dragging');
+                    
+                    // Remove all drag-over classes
+                    questions.forEach(q => q.classList.remove('drag-over'));
+                    
+                    // Remove drop indicators
+                    const indicators = document.querySelectorAll('.drop-indicator');
+                    indicators.forEach(indicator => indicator.remove());
+                    
+                    draggedElement = null;
+                    draggedIndex = -1;
+                }
             }
             
             function handleDragOver(e) {
+                // Check if this is a toolbox component drag by checking dataTransfer types
+                // Toolbox components set 'question-type' in types, question items set 'text/html'
+                if (e.dataTransfer.types.includes('question-type') || 
+                    (e.dataTransfer.effectAllowed === 'copy' && !e.dataTransfer.types.includes('text/html'))) {
+                    return; // Let the drop zone handle it
+                }
+                
                 e.preventDefault();
                 e.dataTransfer.dropEffect = 'move';
                 
                 const afterElement = getDragAfterElement(questionsList, e.clientY);
-                const dragging = document.querySelector('.dragging');
+                const dragging = document.querySelector('.draggable-question.dragging');
                 
-                if (afterElement == null) {
+                if (dragging && afterElement == null) {
                     questionsList.appendChild(dragging);
-                } else {
+                } else if (dragging && afterElement) {
                     questionsList.insertBefore(dragging, afterElement);
                 }
             }
             
             function handleDrop(e) {
+                // Check if this is a toolbox component drag - if so, ignore
+                const questionType = e.dataTransfer.getData('question-type');
+                if (questionType) {
+                    return; // Let the drop zone handle it
+                }
+                
                 e.preventDefault();
                 
                 if (draggedElement) {
@@ -961,11 +1243,23 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             function handleDragEnter(e) {
+                // Check if this is a toolbox component drag by checking dataTransfer types
+                if (e.dataTransfer.types.includes('question-type') || 
+                    (e.dataTransfer.effectAllowed === 'copy' && !e.dataTransfer.types.includes('text/html'))) {
+                    return; // Let the drop zone handle it
+                }
+                
                 e.preventDefault();
                 this.classList.add('drag-over');
             }
             
             function handleDragLeave(e) {
+                // Check if this is a toolbox component drag by checking dataTransfer types
+                if (e.dataTransfer.types.includes('question-type') || 
+                    (e.dataTransfer.effectAllowed === 'copy' && !e.dataTransfer.types.includes('text/html'))) {
+                    return; // Let the drop zone handle it
+                }
+                
                 this.classList.remove('drag-over');
             }
             
@@ -1052,6 +1346,176 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Make removeTemporaryQuestion globally accessible
     window.removeTemporaryQuestion = removeTemporaryQuestion;
+    
+    // Initialize Component Toolbox
+    function initializeComponentToolbox() {
+        // Initialize collapsible sections
+        const sectionHeaders = document.querySelectorAll('.toolbox-section-header');
+        sectionHeaders.forEach(header => {
+            header.addEventListener('click', function() {
+                const section = this.getAttribute('data-section');
+                const content = document.getElementById(section + '-section');
+                const isCollapsed = content.classList.contains('collapsed');
+                
+                if (isCollapsed) {
+                    content.classList.remove('collapsed');
+                    this.classList.remove('collapsed');
+                } else {
+                    content.classList.add('collapsed');
+                    this.classList.add('collapsed');
+                }
+            });
+        });
+        
+        // Initialize drag and drop for toolbox components
+        const toolboxComponents = document.querySelectorAll('.toolbox-component');
+        const questionsDropZone = document.getElementById('questionsDropZone');
+        const dropZoneIndicator = document.getElementById('dropZoneIndicator');
+        
+        toolboxComponents.forEach(component => {
+            component.addEventListener('dragstart', function(e) {
+                this.classList.add('dragging');
+                const questionType = this.getAttribute('data-question-type');
+                e.dataTransfer.effectAllowed = 'copy';
+                e.dataTransfer.setData('question-type', questionType);
+                e.dataTransfer.setData('text/plain', questionType);
+                e.dataTransfer.setData('drag-source', 'toolbox-component');
+            });
+            
+            component.addEventListener('dragend', function(e) {
+                this.classList.remove('dragging');
+                if (dropZoneIndicator) {
+                    dropZoneIndicator.style.display = 'none';
+                    dropZoneIndicator.classList.remove('active');
+                }
+                if (questionsDropZone) {
+                    questionsDropZone.classList.remove('drag-over');
+                }
+            });
+        });
+        
+        // Drop zone handlers
+        if (questionsDropZone) {
+            questionsDropZone.addEventListener('dragover', function(e) {
+                // Only handle if this is a toolbox component drag (check types array)
+                if (e.dataTransfer.types.includes('question-type') || 
+                    (e.dataTransfer.effectAllowed === 'copy' && !e.dataTransfer.types.includes('text/html'))) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    e.dataTransfer.dropEffect = 'copy';
+                    
+                    if (dropZoneIndicator) {
+                        dropZoneIndicator.style.display = 'block';
+                        dropZoneIndicator.classList.add('active');
+                    }
+                    this.classList.add('drag-over');
+                }
+            });
+            
+            questionsDropZone.addEventListener('dragenter', function(e) {
+                // Only handle if this is a toolbox component drag (check types array)
+                if (e.dataTransfer.types.includes('question-type') || 
+                    (e.dataTransfer.effectAllowed === 'copy' && !e.dataTransfer.types.includes('text/html'))) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+            });
+            
+            questionsDropZone.addEventListener('dragleave', function(e) {
+                // Only hide if we're actually leaving the drop zone
+                if (!this.contains(e.relatedTarget)) {
+                    if (dropZoneIndicator) {
+                        dropZoneIndicator.style.display = 'none';
+                        dropZoneIndicator.classList.remove('active');
+                    }
+                    this.classList.remove('drag-over');
+                }
+            });
+            
+            questionsDropZone.addEventListener('drop', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const questionType = e.dataTransfer.getData('question-type');
+                
+                if (dropZoneIndicator) {
+                    dropZoneIndicator.style.display = 'none';
+                    dropZoneIndicator.classList.remove('active');
+                }
+                this.classList.remove('drag-over');
+                
+                // Only process if this is from a toolbox component
+                if (questionType) {
+                    // Show question form with pre-filled type
+                    showQuestionForm(questionType);
+                    showNotification('Question type selected. Please fill in the details.', 'success');
+                }
+            });
+        }
+        
+        // Also handle drops on the questions list itself (not just individual items)
+        const questionsList = document.getElementById('questionsList');
+        if (questionsList) {
+            questionsList.addEventListener('dragover', function(e) {
+                // Only handle if this is a toolbox component drag (check types array)
+                if (e.dataTransfer.types.includes('question-type') || 
+                    (e.dataTransfer.effectAllowed === 'copy' && !e.dataTransfer.types.includes('text/html'))) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    e.dataTransfer.dropEffect = 'copy';
+                    
+                    // Show drop zone indicator
+                    const dropZoneIndicator = document.getElementById('dropZoneIndicator');
+                    if (dropZoneIndicator) {
+                        dropZoneIndicator.style.display = 'block';
+                        dropZoneIndicator.classList.add('active');
+                    }
+                }
+            });
+            
+            questionsList.addEventListener('drop', function(e) {
+                // Only handle if this is a toolbox component drag
+                const questionType = e.dataTransfer.getData('question-type');
+                
+                if (questionType) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    const dropZoneIndicator = document.getElementById('dropZoneIndicator');
+                    if (dropZoneIndicator) {
+                        dropZoneIndicator.style.display = 'none';
+                        dropZoneIndicator.classList.remove('active');
+                    }
+                    
+                    // Show question form with pre-filled type
+                    showQuestionForm(questionType);
+                    showNotification('Question type selected. Please fill in the details.', 'success');
+                }
+            });
+        }
+        
+        // Also allow dropping on empty questions area
+        const emptyQuestionsArea = document.getElementById('emptyQuestionsArea');
+        if (emptyQuestionsArea) {
+            emptyQuestionsArea.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'copy';
+            });
+            
+            emptyQuestionsArea.addEventListener('drop', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const questionType = e.dataTransfer.getData('question-type');
+                
+                if (questionType) {
+                    // Show question form with pre-filled type
+                    showQuestionForm(questionType);
+                    showNotification('Question type selected. Please fill in the details.', 'success');
+                }
+            });
+        }
+    }
 });
 </script>
 {% endblock %}

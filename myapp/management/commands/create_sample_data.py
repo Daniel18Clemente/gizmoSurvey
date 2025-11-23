@@ -54,6 +54,12 @@ class Command(BaseCommand):
             ('student2', 'Jane', 'Wilson', 'jane.wilson@student.edu', 'CS101-A', 'S002'),
             ('student3', 'Mike', 'Johnson', 'mike.johnson@student.edu', 'CS101-B', 'S003'),
             ('student4', 'Sarah', 'Brown', 'sarah.brown@student.edu', 'CS101-B', 'S004'),
+            ('student5', 'David', 'Lee', 'david.lee@student.edu', 'CS101-A', 'S005'),
+            ('student6', 'Emily', 'Chen', 'emily.chen@student.edu', 'CS101-A', 'S006'),
+            ('student7', 'Robert', 'Taylor', 'robert.taylor@student.edu', 'CS101-B', 'S007'),
+            ('student8', 'Lisa', 'Anderson', 'lisa.anderson@student.edu', 'CS101-B', 'S008'),
+            ('student9', 'James', 'Martinez', 'james.martinez@student.edu', 'CS101-A', 'S009'),
+            ('student10', 'Maria', 'Garcia', 'maria.garcia@student.edu', 'CS101-B', 'S010'),
         ]
         
         for username, first_name, last_name, email, section_code, student_id in students_data:
@@ -142,9 +148,9 @@ class Command(BaseCommand):
         self.stdout.write('Created:')
         self.stdout.write(f'- 2 Sections: {section1.name}, {section2.name}')
         self.stdout.write(f'- 1 Teacher: {teacher.get_full_name()}')
-        self.stdout.write(f'- 4 Students: John Doe, Jane Wilson, Mike Johnson, Sarah Brown')
+        self.stdout.write(f'- 10 Students: John Doe, Jane Wilson, Mike Johnson, Sarah Brown, David Lee, Emily Chen, Robert Taylor, Lisa Anderson, James Martinez, Maria Garcia')
         self.stdout.write(f'- 1 Survey: {survey.title} with 5 questions')
         self.stdout.write('')
         self.stdout.write('Login credentials:')
         self.stdout.write('Teacher: username=teacher1, password=password123')
-        self.stdout.write('Students: username=student1-4, password=password123')
+        self.stdout.write('Students: username=student1-10, password=password123')
